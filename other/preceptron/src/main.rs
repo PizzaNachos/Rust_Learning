@@ -1,14 +1,5 @@
-extern crate sdl2;
 
 use rand::prelude::*;
-
-use sdl2::pixels::Color;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use sdl2::rect::Point;
-use std::time::Duration;
-use sdl2::pixels;
-// use sdl2::gfx::primitives::DrawRenderer;
 struct Neuron{
     weights: Vec<f64>,
     bias: f64,
@@ -39,7 +30,7 @@ impl Neuron {
     }
 }
 
-fn main()  -> Result<(), String> {
+fn main(){
     let n = Neuron::new(2);
 
     let mut n_inputs = vec![];
@@ -54,35 +45,4 @@ fn main()  -> Result<(), String> {
         guesses.push(n.guess(&input))
     }
     println!("{:?}", guesses);
-
-
-    let sdl_context = sdl2::init()?;
-    let video_subsys = sdl_context.video()?;
-    let window = video_subsys
-        .window(
-            "rust-sdl2_gfx: draw line & FPSManager",
-            800,
-            800,
-        )
-        .position_centered()
-        .opengl()
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
-
-    canvas.set_draw_color(pixels::Color::RGB(0, 0, 0));
-    canvas.clear();
-    canvas.present();
-
-    let mut lastx = 0;
-    let mut lasty = 0;
-
-    let mut events = sdl_context.event_pump()?;
-
-    let point : Point = Point::new(100, 100);
-    canvas.draw_point(point);
-    // canvas.pixel(10 as i16, 10 as i16, 0xFF000FFu32)?;
-
-    Ok(())
 }

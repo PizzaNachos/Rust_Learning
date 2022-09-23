@@ -1,4 +1,6 @@
 
+use std::vec;
+
 use rand::prelude::*;
 struct Neuron{
     weights: Vec<f64>,
@@ -30,19 +32,50 @@ impl Neuron {
     }
 }
 
-fn main(){
-    let n = Neuron::new(2);
-
-    let mut n_inputs = vec![];
-    for i in 0..10 {
-        n_inputs.push(vec![]);
-        for _ in 0..2 {
-            n_inputs[i].push(rand::thread_rng().gen::<f64>() - 0.5);
+struct Layer{
+    nuerons: Vec<Neuron>
+}
+impl Layer {
+    fn new(input_size : usize, layer_size : usize) -> Layer{
+        let mut n = vec![];
+        for i in 0..layer_size{
+            n.push(Neuron::new(input_size))
         }
+        Layer { nuerons: n }
     }
-    let mut guesses = vec![];
-    for input in n_inputs {
-        guesses.push(n.guess(&input))
+
+    fn feed_forward(&self, inputs : &Vec<f64>) -> Vec<f64>{
+        let mut outputs : Vec<f64> = Vec::with_capacity(self.nuerons.len());
+        for neuron in self.nuerons.iter() {
+            outputs.push(neuron.guess(inputs));
+        }
+        outputs
     }
+}
+
+struct Network {
+    layers : Vec<Layer>
+}
+impl Network {  
+    fn new(layers: Vec<usize>) -> Network{
+        let mut l = Vec::with_capacity(layers.len());
+        for i in 1..layers.len(){
+            l.push(Layer::new(layers[i - 1], layers[i])); 
+        }
+        Network { layers: l }
+    }
+    fn feed_forward(&self, inputs : Vec<f64>) -> Vec<f64> {
+        let mut tmp : Vec<f64> = inputs;
+        for layer in self.layers.iter(){
+            tmp = layer.feed_forward(&tmp);
+        }
+        tmp
+    }
+}
+
+fn main(){
+    let n = Network::new(vec![2,10,5]);
+    let n_inputs = vec![rand::thread_rng().gen::<f64>() - 0.5,rand::thread_rng().gen::<f64>() - 0.5];
+    let guesses = n.feed_forward(n_inputs);
     println!("{:?}", guesses);
 }

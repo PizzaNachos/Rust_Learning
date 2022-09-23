@@ -10,11 +10,12 @@ struct Neuron{
 impl Neuron {
     fn new(number_of_weights : usize) -> Neuron {
         let random_bias = rand::thread_rng().gen::<f64>()  - 0.5_f64;
-        let weights_vector = vec![rand::thread_rng().gen::<f64>() - 0.5_f64; number_of_weights];
-
-        fn sigmoid(input: f64) -> f64{
-            1.0 / ( 1.0 + 2.71828_f64.powf(-input))
+        let mut random_weights = Vec::with_capacity(number_of_weights);
+        for i in 0..number_of_weights{
+            random_weights.push(rand::thread_rng().gen::<f64>() - 0.5_f64);
         }
+        let weights_vector = random_weights;
+
         Neuron{
             weights: weights_vector,
             bias: random_bias,
@@ -29,6 +30,12 @@ impl Neuron {
         }
         sum += self.bias;
         (self.activation_function)(sum)
+    }
+
+    fn tweak_weights(&mut self, tweak_ammount: f64){
+        for weight in self.weights.iter_mut(){
+            *weight = *weight + (tweak_ammount * rand::thread_rng().gen::<f64>());
+        }
     }
 }
 
@@ -51,6 +58,11 @@ impl Layer {
         }
         outputs
     }
+    fn tweak_weights(&mut self, tweak_ammount:f64){
+        for n in self.nuerons.iter_mut(){
+            n.tweak_weights(tweak_ammount);
+        }
+    }
 }
 
 struct Network {
@@ -71,11 +83,55 @@ impl Network {
         }
         tmp
     }
+    fn tweak_weights(&mut self, tweak_ammount:f64){
+        for layer in self.layers.iter_mut() {
+            layer.tweak_weights(tweak_ammount);
+        }
+    }
 }
 
 fn main(){
-    let n = Network::new(vec![2,10,5]);
-    let n_inputs = vec![rand::thread_rng().gen::<f64>() - 0.5,rand::thread_rng().gen::<f64>() - 0.5];
-    let guesses = n.feed_forward(n_inputs);
-    println!("{:?}", guesses);
+    let mut n = Network::new(vec![2,100,1]);
+    let mut tweak_ammount : f64 = 0.0005;
+
+    loop{
+        tweak_ammount += 0.001 * (rand::thread_rng().gen::<f64>() - 0.5);
+        n.tweak_weights(tweak_ammount);
+        let mut outputs = vec![];
+        let x_size : i32 = 100;
+        let y_size : i32 = 50;
+        for i in 0..y_size{
+            outputs.push(vec![]);
+            for j in 0..x_size{
+                outputs[i as usize].push(n.feed_forward(vec![(i - y_size / 2).into(),(j - y_size / 2).into()]));
+            }
+        }
+        render_vectors(outputs);
+    }
+}
+
+fn render_vectors(inputs: Vec<Vec<Vec<f64>>>){
+    print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
+    for row in inputs {
+        for col in row {
+            let num = col[0] * 100.0;
+            // print!("{}",num.round());
+            match  num as i32 {
+                0..=10 => print!(" "),
+                11..=20 => print!("."),
+                21..=40 => print!(","),
+                41..=50 => print!("o"),
+                51..=60 => print!("x"),
+                61..=80 => print!("%"),
+                81..=90 => print!("$"),
+                91..=100 => print!("#"),
+                _ => print!(" ")
+            }   
+        }
+        println!("");
+    }
+}
+
+fn sigmoid(input: f64) -> f64{
+    1.0 / ( 1.0 + 2.71828_f64.powf(-input))
 }

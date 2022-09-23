@@ -95,7 +95,7 @@ fn main(){
     let mut tweak_ammount : f64 = 0.0005;
 
     loop{
-        tweak_ammount += 0.001 * (rand::thread_rng().gen::<f64>() - 0.5);
+        tweak_ammount += 0.0001 * (rand::thread_rng().gen::<f64>() - 0.55);
         n.tweak_weights(tweak_ammount);
         let mut outputs = vec![];
         let x_size : i32 = 100;

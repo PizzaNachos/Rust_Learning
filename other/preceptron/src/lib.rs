@@ -38,6 +38,7 @@ impl Neuron {
         for weight in self.weights.iter_mut(){
             *weight = *weight + (tweak_ammount * (random_f64_0_1() - 0.5));
         }
+        self.bias += tweak_ammount * (random_f64_0_1() - 0.5) * 4.0;
     }
     fn tweak_random_weight(&mut self, tweak_ammount:f64){
         // TODO! Replace with random number generator
@@ -114,48 +115,6 @@ impl Network {
     }
 }
 
-#[wasm_bindgen]
-pub struct Test{
-    x:i32
-}
-#[wasm_bindgen]
-impl Test{
-    pub fn new() -> Test{
-        return Test{x:24};
-    }
-    pub fn print(&self) -> i32 {
-        return self.x;
-    }
-}
-#[wasm_bindgen(start)]
-pub fn main() -> Result<(), JsValue>{
-    Ok(())
-}
-
-fn render_vectors(inputs: Vec<Vec<Vec<f64>>>) -> String{
-    let mut row_string = String::new();
-    for row in inputs {
-        for col in row {
-            let num = col[0] * 100.0;
-            // print!("{}",num.round());
-            match  num as i32 {
-                0..=10 => row_string += " ",//print!(" "),
-                11..=20 => row_string += ".",//print!("."),
-                21..=40 => row_string += ",",//print!(","),
-                41..=50 => row_string += "o",//print!("o"),
-                51..=60 => row_string += "E",//print!("E"),
-                61..=80 => row_string += "#",//print!("#"),
-                81..=90 => row_string += "$",//print!("$"),
-                91..=100 => row_string += "%",//print!("%"),
-                _ => row_string += " "
-            }   
-        }
-        row_string += "\n";
-    }
-    return row_string;
-    // print!("{esc}[2J{esc}[1;1H", esc = 27 as char);
-    // println!("{}", row_string);
-}
 
 fn sigmoid(input: f64) -> f64{
     1.0 / ( 1.0 + 2.71828_f64.powf(-input))
@@ -178,3 +137,45 @@ pub fn random_f64_0_1() -> f64{
         Err(_) => 0.5
     }
 }
+
+#[wasm_bindgen]
+pub struct FunctionTuple{
+    red: Box<dyn Fn(f64, f64) -> bool>,
+    green: Box<dyn Fn(f64, f64) -> bool>,
+    blue: Box<dyn Fn(f64, f64) -> bool>,
+}
+
+#[wasm_bindgen]
+impl FunctionTuple{
+    pub fn new() -> FunctionTuple{
+        let r = generate_poly();
+        let g = generate_poly();
+        let b = generate_poly();
+        FunctionTuple { red: r, green: g, blue: b }
+    }
+    pub fn red(&self, x:f64, y:f64) -> bool{
+        (self.red)(x, y)
+    }
+    pub fn green(&self, x:f64, y:f64) -> bool{
+        (self.green)(x, y)
+    }    
+    pub fn blue(&self, x:f64, y:f64) -> bool{
+        (self.blue)(x, y)
+    }
+}
+
+fn generate_poly() -> Box<dyn Fn(f64, f64) -> bool>{
+    let i = 10.0;
+    // fn create(x:f64, y:f64) -> f64{
+    //     i
+    // }
+    Box::new(move|x,y| -> bool{
+        return x > y;
+    })
+}
+
+#[wasm_bindgen(start)]
+pub fn main() -> Result<(), JsValue>{
+    Ok(())
+}
+

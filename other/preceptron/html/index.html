@@ -1,12 +1,18 @@
 <html>
   <head>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type"/>
+    <link rel="stylesheet" href="./index.css">      
   </head>
   <body style="font-size: small;">
-    <canvas id="canvas2" width="500" height="500"></canvas>
+    <div class="canvas_wrapper">
+      <canvas id="canvas2" width="500" height="500"></canvas>
+    </div>
+    <div class="canvas_wrapper">
+      <canvas id="canvas1" width="500" height="500"></canvas>
+    </div>
     <!-- Note the usage of `type=module` here as this is an ES6 module -->
     <script type="module">
-      import init, {Network, Test, random_f64_0_1} from './pkg/preceptron.js';
+      import init, {Network, random_f64_0_1, FunctionTuple} from '../pkg/preceptron.js';
       import {calc_function_space} from "./function_space.js";
 
       // Use ES module import syntax to import functionality from the module
@@ -27,10 +33,30 @@
                   let g = n1.feed_forward([function_space[i][j].x,function_space[i][j].y]);
                   ctx2.fillStyle = `rgb(${g[0] * 255}, ${g[1] * 255}, ${g[2] * 255})`;
                   ctx2.fillRect(i * low_res_scale, j * low_res_scale, low_res_scale, low_res_scale);
-              }
-          }
+            }
         }
+      }
+      function draw_poly(polys, c_w, c_h, function_space, low_res_scale){
+        const canvas2 = document.getElementById('canvas1');
+          const ctx2 = canvas2.getContext('2d');
+          console.log(1)
 
+          ctx2.fillStyle = 'rgb(0, 0, 0)';
+          ctx2.fillRect(0, 0, c_w, c_h);
+          for(let i = 0; i < c_w / low_res_scale; i++){
+              for(let j = 0; j < c_h / low_res_scale; j++){
+                let x = function_space[i][j].x;
+                let y = function_space[i][j].y;
+                console.log(x,y)
+                let r = polys.red(x,y)
+                let g = polys.green(x,y)
+                let b = polys.blue(x,y)
+                console.log(r,g,b)
+                  ctx2.fillStyle = `rgb(${r * 255}, ${g * 255}, ${b * 255})`;
+                  ctx2.fillRect(i * low_res_scale, j * low_res_scale, low_res_scale, low_res_scale);
+            }
+        }
+      }
       async function run() {
 
         // First up we need to actually load the wasm file, so we use the
@@ -62,19 +88,22 @@
         await init();
         let c_w = 500;
         let c_h = 500;
-        let low_res_scale = 4
+        let low_res_scale = 4;
         let function_space = calc_function_space(c_w, c_h, 50, 50, low_res_scale);
 
-        
-        let n = Network.new([2,16,16,3]); 
-        let tweak_ammount = 0.1;
+        let function_tuple = FunctionTuple.new();
+        draw_poly(function_tuple, c_w, c_h, function_space, low_res_scale)
+
+
+        let n = Network.new([2,16,3]); 
         for(let i = 0; i < 100000; i++){
           draw_nn(n, c_w, c_h, function_space, low_res_scale);
           // n.tw(0.01);
-          // n.tweak_weights(0.005);
-          n.tweak_random_weight(tweak_ammount);
-          tweak_ammount += .001;
-          await new Promise(resolve => setTimeout(resolve, 10));
+          n.tweak_weights(0.05);
+          // let tweak_ammount = 0.1;
+          // n.tweak_random_weight(tweak_ammount);
+          // tweak_ammount += .001;
+          await new Promise(resolve => setTimeout(resolve, 0));
         }
         // And afterwards we can use all the functionality defined in wasm.
         // const result = add(1, 2);

@@ -124,51 +124,64 @@ impl Network {
         self.layers[i].tweak_random_weight(tweak_ammount);
     }
 
-    pub fn train_with_backpropigate(&mut self, inputs: Vec<InputXY>, outputs: Vec<InputXY>) {
-        // let agregate_changes : Vec<Vec<f64>> = vec![];
-        let layer_output : Vec<f64> = vec![];
-    }
-
-
-    pub fn backpropigage_error_array(&mut self, average_errors : Vec<f64>){
-        // Average errors is what we want to happen to the activations of the last layer
-        let raw_bias_change : f64 = 0.001;
-        let raw_weight_change : f64 = 0.0005;
-        // Changes we want to make to the layers
-        // Nudge bias ever so slighly (0.0001 or so idk)
-        // increase weights of strongly activated previous neurons (> 0.5)
-        // Increase activation of strongly weighted neurons
-        let mut ideal_changes : Vec<f64> = average_errors;        
-
-        'layers: for current_layer in self.layers.iter_mut().rev(){
-            // let next_change : Vec<f64> = vec![];
-            let mut next_changes : Vec<f64> = vec![1.0;current_layer.nuerons[0].weights.len()];
-
-            for (i,neuron) in (*current_layer).nuerons.iter_mut().enumerate(){
-                // Bump the bias's of this layer scaled to the ammount of ideal change;
-                neuron.bump_bias(ideal_changes[i] * raw_bias_change);
-
-                // Increasee weights of stronly activated previous neurons
-                // TODO! find out how to know what neurons were previously activated
-                for weight in neuron.weights.iter_mut(){
-                    if (*weight).powf(2.0) > 0.4{
-                        *weight += (*weight) * ideal_changes[i];
-                    }
-                }
-                // Increase the activated of strong positivly connected previous neurons
-                // and decrease activation of strong negitivly weighted neurons
-                for (i,weight) in neuron.weights.iter_mut().enumerate(){
-                    next_changes[i] += *weight * raw_weight_change;
-                }
-
-            }
-            ideal_changes = next_changes;
+    // Set up function to get around weird JS bindings
+    pub fn back_propigate_js(&mut self, x_input: Vec<f64>, y_input: Vec<f64>, r_out: Vec<f64>, g_out : Vec<f64>, b_out: Vec<f64>, ) {
+        assert!(x_input.len() == y_input.len(), "X and Y must be same length");
+        let mut inputs: Vec<Vec<f64>> = Vec::with_capacity(x_input.len());
+        for (i,x) in x_input.into_iter().enumerate() {
+            inputs.push(vec![x,y_input[i]]);
         }
-        // let _running_delta : Vec<Vec<f64>> = vec![];
-        // for (_i, _error) in average_errors.iter().enumerate(){
-
-        // }
+        let mut outputs: Vec<Vec<f64>> = Vec::with_capacity(r_out.len());
+        for (i,x) in r_out.into_iter().enumerate() {
+            outputs.push(vec![x,g_out[i], b_out[i]]);
+        }
+        assert!(outputs.len() == inputs.len(), "Inputs and Outputs must be same length");
+        self.back_propigate(inputs, outputs);
     }
+
+    fn back_propigate(&mut self, inputs: Vec<Vec<f64>>, outputs: Vec<Vec<f64>>){
+        // Step through each input, feed forward through the network
+        // Store the output or "state" from each layer.
+        // Then compute cost based on desired outputs
+        // make note of desired change for this layers weights and biases
+        // then propigate backwards and make note of desired change (scaled to something?)
+        // to each Layers weights and biases
+        
+        // After doing this for each input and output pair then we actually
+        // apply the desired changes 
+
+        // Layers[Neurons[Changes to be made to each weight]]
+        let mut agregate__weight_changes : Vec<Vec<Vec<f64>>> = vec![];
+        let mut agregate__bias_changes : Vec<Vec<f64>> = vec![];
+
+        
+        'top_level: for (top_level_input, input) in inputs.into_iter().enumerate(){
+            let mut layer_outputs : Vec<Vec<f64>> = vec![];
+            
+            let mut tmp : Vec<f64> = input;
+            for layer in self.layers.iter(){
+                tmp = layer.feed_forward(&tmp);
+                layer_outputs.push(tmp.clone());
+            }
+
+
+            // Iterate backwards over the layers
+            for (layer_output_index,layer_output) in layer_outputs.iter().enumerate().rev(){
+                // Calculate cost of this layer
+                let mut cost : Vec<f64> = vec![0.0;layer_output.len()];
+                for (j,output) in outputs[top_level_input].iter().enumerate()  {
+                    cost.push((*output - layer_output[j]).powf(2.0));
+                }
+
+                // Diff the cost and note what changes we want to make
+                for (j, neural_activation) in layer_output.iter().enumerate(){
+
+                }
+            }
+
+        }
+    }
+
     pub fn get_last_weights(&self) -> Vec<f64>{
         return self.layers[self.layers.len() - 1].nuerons.iter().map(|n| -> Vec<f64> {n.weights.clone()}).flatten().collect();
     }
@@ -217,9 +230,9 @@ pub fn random_i32(size: i32) -> i32{
 }
 #[wasm_bindgen]
 pub struct FunctionTuple{
-    red: Box<dyn Fn(f64, f64) -> bool>,
-    green: Box<dyn Fn(f64, f64) -> bool>,
-    blue: Box<dyn Fn(f64, f64) -> bool>,
+    red: Box<dyn Fn(f64, f64) -> f64>,
+    green: Box<dyn Fn(f64, f64) -> f64>,
+    blue: Box<dyn Fn(f64, f64) -> f64>,
 }
 
 #[wasm_bindgen]
@@ -230,23 +243,23 @@ impl FunctionTuple{
         let b = generate_poly();
         FunctionTuple { red: r, green: g, blue: b }
     }
-    pub fn red(&self, x:f64, y:f64) -> bool{
+    pub fn red(&self, x:f64, y:f64) -> f64{
         (self.red)(x, y)
     }
-    pub fn green(&self, x:f64, y:f64) -> bool{
+    pub fn green(&self, x:f64, y:f64) -> f64{
         (self.green)(x, y)
     }    
-    pub fn blue(&self, x:f64, y:f64) -> bool{
+    pub fn blue(&self, x:f64, y:f64) -> f64{
         (self.blue)(x, y)
     }
 }
 
-fn generate_poly() -> Box<dyn Fn(f64, f64) -> bool>{
+fn generate_poly() -> Box<dyn Fn(f64, f64) -> f64>{
     let m = random_f64_0_1() / 4.0;
     let n = random_i32(4) + 1;
     let b : f64 = random_i32(10).into();
-    Box::new(move|x,y| -> bool {
-        return (m* x.powf(n.into()) + b) > y;
+    Box::new(move|x,y| -> f64 {
+        return (((m* x.powf(n.into()) + b) > y) as i32).into();
     })
 }
 

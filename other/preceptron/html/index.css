@@ -11,3 +11,8 @@
     max-width: 45vw;
     /* width: 500px; */
 }
+#graph_canvases{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}

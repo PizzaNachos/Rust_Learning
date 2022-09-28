@@ -86,38 +86,49 @@ async function run() {
     await init();
     let c_w = 500;
     let c_h = 500;
-    let low_res_scale = 16;
+    let low_res_scale = 4;
     let function_space = calc_function_space(c_w, c_h, 20, 20, low_res_scale);
 
     let function_tuple = FunctionTuple.new();
     draw_poly(function_tuple, c_w, c_h, function_space, low_res_scale);
 
-    let n = Network.new([2, 64, 16, 3]);
+    let n = Network.new([2, 8,8, 3]);
 
 
-    for (let i = 0; i < 1000; i++) {
-        let agregate_error = [];
+    for (let i = 0; i < 100; i++) {
+        let xs = [];
+        let ys = [];
+
+        let rs =  [];
+        let gs = [];
+        let bs =  [];
 
         for (let i = 0; i < c_w / low_res_scale; i++) {
             for (let j = 0; j < c_h / low_res_scale; j++) {
                 let x = function_space[i][j].x;
                 let y = function_space[i][j].y;
 
-                let r = function_tuple.red(x, y);
-                let g = function_tuple.green(x, y);
-                let b = function_tuple.blue(x, y);
+                xs.push(x)
+                ys.push(y)
 
-                let poly_output = [r,g,b];
-                let neuron_output = n.feed_forward([x,y]);
-                
-                let error = neuron_output.map((n,i) => n - poly_output[i]);
-                n.backpropigage_error_array(error);
-                draw_nn(n, c_w, c_h, function_space, low_res_scale);
-                await new Promise((resolve) => setTimeout(resolve, 1));
+                rs.push( function_tuple.red(x, y))
+                gs.push( function_tuple.green(x, y))
+                bs.push( function_tuple.blue(x, y))
+
+                // let poly_output = [r,g,b];
+                // let neuron_output = n.feed_forward([x,y]);
+
 
                 // console.log(error);
             }
         }
+
+        // console.log(xs,ys,rs,gs,bs);
+
+        console.log(n.back_propigate_js(xs, ys, rs,gs,bs));
+        draw_nn(n, c_w, c_h, function_space, low_res_scale);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         // let red_error_number = 0;
         // let green_error_number = 0;
         // let blue_error_number = 0;

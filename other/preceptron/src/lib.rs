@@ -125,7 +125,7 @@ impl Network {
     }
 
     // Set up function to get around weird JS bindings
-    pub fn back_propigate_js(&mut self, x_input: Vec<f64>, y_input: Vec<f64>, r_out: Vec<f64>, g_out : Vec<f64>, b_out: Vec<f64>, ) {
+    pub fn back_propigate_js(&mut self, x_input: Vec<f64>, y_input: Vec<f64>, r_out: Vec<f64>, g_out : Vec<f64>, b_out: Vec<f64>, ) -> (){
         assert!(x_input.len() == y_input.len(), "X and Y must be same length");
         let mut inputs: Vec<Vec<f64>> = Vec::with_capacity(x_input.len());
         for (i,x) in x_input.into_iter().enumerate() {
@@ -136,10 +136,10 @@ impl Network {
             outputs.push(vec![x,g_out[i], b_out[i]]);
         }
         assert!(outputs.len() == inputs.len(), "Inputs and Outputs must be same length");
-        self.back_propigate(inputs, outputs);
+        self.back_propigate(inputs, outputs)
     }
 
-    fn back_propigate(&mut self, inputs: Vec<Vec<f64>>, outputs: Vec<Vec<f64>>){
+    fn back_propigate(&mut self, inputs: Vec<Vec<f64>>, outputs: Vec<Vec<f64>>) -> (){
         // Step through each input, feed forward through the network
         // Store the output or "state" from each layer.
         // Then compute cost based on desired outputs
@@ -151,11 +151,27 @@ impl Network {
         // apply the desired changes 
 
         // Layers[Neurons[Changes to be made to each weight]]
-        let mut agregate__weight_changes : Vec<Vec<Vec<f64>>> = vec![];
-        let mut agregate__bias_changes : Vec<Vec<f64>> = vec![];
+        let weight_const = 0.00005;
+        let mut agregate_weight_changes : Vec<Vec<Vec<f64>>> = vec![vec![]; self.layers.len()];
+        for (i,changes) in agregate_weight_changes.iter_mut().enumerate(){
+            for j in 0..self.layers[i].nuerons.len() {
+                changes.push(vec![0.0;self.layers[i].nuerons[j].weights.len()]);
+            }
+        }
 
-        
-        'top_level: for (top_level_input, input) in inputs.into_iter().enumerate(){
+        let bias_const = 0.0001;
+        let mut agregate_bias_changes : Vec<Vec<f64>> = vec![vec![]; self.layers.len()];
+        for (i,changes) in agregate_bias_changes.iter_mut().enumerate(){
+            let mut asd = 0.0;
+            for _ in 0..self.layers[i].nuerons.len() {
+                changes.push(asd);
+                // c.push(asd);
+                asd += 1.0;
+            }
+        }
+
+
+        for (top_level_input, input) in inputs.into_iter().enumerate(){
             let mut layer_outputs : Vec<Vec<f64>> = vec![];
             
             let mut tmp : Vec<f64> = input;
@@ -166,19 +182,56 @@ impl Network {
 
 
             // Iterate backwards over the layers
-            for (layer_output_index,layer_output) in layer_outputs.iter().enumerate().rev(){
-                // Calculate cost of this layer
+            for layer_output_index in (0..layer_outputs.len()).rev(){
+                let layer_output = &layer_outputs[layer_output_index];
                 let mut cost : Vec<f64> = vec![0.0;layer_output.len()];
                 for (j,output) in outputs[top_level_input].iter().enumerate()  {
-                    cost.push((*output - layer_output[j]).powf(2.0));
+                    cost[j] = (*output - layer_output[j]);
                 }
-
+ 
                 // Diff the cost and note what changes we want to make
-                for (j, neural_activation) in layer_output.iter().enumerate(){
+                for (j, neural_cost) in cost.iter().enumerate(){
+                    // Bump bias
+                    agregate_bias_changes[layer_output_index][j] += (neural_cost * bias_const);
 
+                    // This one crashes now
+                    let mut strong_activation_indexes_previous_layer : Vec<usize>  = vec![];
+                    let mut average_activation = 0.0;
+                    if (layer_output_index - 1) != 0{
+                        for activation in layer_output{
+                            average_activation += activation;
+                        }
+                        average_activation /= layer_output.len() as f64;
+
+                        for (act_ind,activation) in layer_output.iter().enumerate(){
+                            if *activation > average_activation {
+                                strong_activation_indexes_previous_layer.push(act_ind);
+                            }
+                        }
+                    }
+
+                    for (w_ind,weight) in agregate_weight_changes[layer_output_index][j].iter_mut().enumerate(){
+                        if strong_activation_indexes_previous_layer.contains(&w_ind){
+                            *weight += (neural_cost * weight_const);
+                        }
+                    }
+
+                    // agregate_weight_changes[layer_output_index][j] += 
                 }
             }
-
+        };
+        // return c;
+        for (i,layer_to_change) in agregate_bias_changes.into_iter().enumerate(){
+            for (j,change) in layer_to_change.into_iter().enumerate(){
+                self.layers[i].nuerons[j].bias += change;
+            }
+        }
+        for (i,layer_to_change) in agregate_weight_changes.into_iter().enumerate(){
+            for (j,weights) in layer_to_change.into_iter().enumerate(){
+                for(k, weight) in weights.into_iter().enumerate(){
+                    self.layers[i].nuerons[j].weights[k] += weight;
+                }
+            }
         }
     }
 

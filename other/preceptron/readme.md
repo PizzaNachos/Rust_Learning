@@ -16,3 +16,9 @@ Structure:
             webGL backend for the NN stuff
                 Genetic vs Back propigation
 
+
+TODO:
+    Back propigation is complety wrong and broken, never changes the cost array to the next layer
+    Doesnt properly handle different size layers ect...
+
+    

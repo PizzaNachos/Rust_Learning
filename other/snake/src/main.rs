@@ -120,7 +120,7 @@ fn game_loop(_board : Vec<Vec<Square>>){
     }
 }
 
-fn move_snake(mut snake : SnakePeice){
+fn move_snake(&mut snake : SnakePeice){
     while snake.next.is_some() {
         match snake.velocity{
             Direction::North => {

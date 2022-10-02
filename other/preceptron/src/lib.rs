@@ -308,16 +308,16 @@ impl FunctionTuple{
 }
 
 fn generate_poly() -> Box<dyn Fn(f64, f64) -> f64>{
-    // let m = random_f64_0_1() * 4.0;
-    // let n = random_i32(4) + 1;
-    // let b : f64 = random_i32(10).into();
-    // Box::new(move|x,y| -> f64 {
-    //     return (((m* x.powf(n.into()) + b) > y) as i32).into();
-    // })
-    let m = random_f64_0_1() * 20.0;
+    let m = random_f64_0_1() / 4.0;
+    let n = random_i32(4) + 1;
+    let b : f64 = random_i32(10).into();
     Box::new(move|x,y| -> f64 {
-        return (((m) > y) as i32).into();
+        return (((m* x.powf(n.into()) + b) > y) as i32).into();
     })
+    // let m = random_f64_0_1() * 20.0;
+    // Box::new(move|x,y| -> f64 {
+    //     return (((m) > y) as i32).into();
+    // })
 }
 
 #[wasm_bindgen(start)]

@@ -86,13 +86,13 @@ async function run() {
     await init();
     let c_w = 500;
     let c_h = 500;
-    let low_res_scale = 8;
+    let low_res_scale = 4;
     let function_space = calc_function_space(c_w, c_h, 20, 20, low_res_scale);
 
     let function_tuple = FunctionTuple.new();
     draw_poly(function_tuple, c_w, c_h, function_space, low_res_scale);
 
-    let n = Network.new([2, 3]);
+    let n = Network.new([2,64,3]);
 
 
     for (let i = 0; i < 100000; i++) {

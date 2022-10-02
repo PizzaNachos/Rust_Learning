@@ -264,9 +264,8 @@ pub fn random_f64_0_1() -> f64{
             // 0b0_01111111110_00000000000000000000000
             byts[0] = 0b0_0111111;
             byts[1] = (byts[1] | 0b1110_0000) & (byts[1] & 0b1110_1111);
-            // print!("{:?}", byts);
-            let l = f64::from_be_bytes(byts) * 4.0;
-            l
+            // Times 4 for some reason, experminets show we need to do this to normalize it
+            f64::from_be_bytes(byts) * 4.0
         },
         Err(_) => 0.5
     }
@@ -308,16 +307,23 @@ impl FunctionTuple{
 }
 
 fn generate_poly() -> Box<dyn Fn(f64, f64) -> f64>{
-    let m = random_f64_0_1() / 4.0;
-    let n = random_i32(4) + 1;
-    let b : f64 = random_i32(10).into();
+    let num_of_terms = random_i32(4) + 2;
+    // let num_of_terms = 3;
+    // let num_of_terms = 5;
+    let mut constants : Vec<f64> = vec![];
+    for _ in 0..num_of_terms{
+        constants.push(random_f64_0_1() / 4.0);
+    }
+    let b = random_i32(5);
+    let c = random_i32(3);
     Box::new(move|x,y| -> f64 {
-        return (((m* x.powf(n.into()) + b) > y) as i32).into();
+        let mut ouput : f64 = 0.0;
+        for (i,constant) in constants.iter().enumerate(){
+            ouput += constant * x.powf((i as i32 + 1).into());
+        }
+        ouput += b as f64;
+        return ((ouput > (y + c as f64)) as i32).into();
     })
-    // let m = random_f64_0_1() * 20.0;
-    // Box::new(move|x,y| -> f64 {
-    //     return (((m) > y) as i32).into();
-    // })
 }
 
 #[wasm_bindgen(start)]

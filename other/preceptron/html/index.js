@@ -92,10 +92,10 @@ async function run() {
     let function_tuple = FunctionTuple.new();
     draw_poly(function_tuple, c_w, c_h, function_space, low_res_scale);
 
-    let n = Network.new([2,64,3]);
+    let n = Network.new([2,3,3]);
 
 
-    for (let i = 0; i < 100000; i++) {
+    for (let i = 0; i < 0; i++) {
         let xs = [];
         let ys = [];
 

@@ -21,4 +21,4 @@ TODO:
     Back propigation is complety wrong and broken, never changes the cost array to the next layer
     Doesnt properly handle different size layers ect...
 
-    
+To compile the rust version habe wasm-pack installed and run `wasm-pack build --target web`

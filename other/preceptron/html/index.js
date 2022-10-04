@@ -95,7 +95,7 @@ async function run() {
     let n = Network.new([2,3,3]);
 
 
-    for (let i = 0; i < 0; i++) {
+    for (let i = 0; i < 1; i++) {
         let xs = [];
         let ys = [];
 
@@ -126,7 +126,14 @@ async function run() {
         // console.log(xs,ys,rs,gs,bs);
 
         // console.log();
-        n.back_propigate_js(xs, ys, rs,gs,bs, 0.0005)
+        // let x = n.back_propigate_js(xs, ys, rs,gs,bs, 0.0005)
+        // console.log(x);
+
+        // let x = n.back_propigate_js([0,0], [0,0], [1,1],[1,1],[1,1], 0.0005)
+        let x = n.back_propigate_js([0], [0], [.1],[.25],[.75], 0.0005)
+
+        console.log(x);
+
         draw_nn(n, c_w, c_h, function_space, low_res_scale);
         await new Promise((resolve) => setTimeout(resolve, 100));
 

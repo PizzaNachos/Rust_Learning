@@ -176,13 +176,14 @@ impl Network {
             }
 
             // Error array is targets - layer_outputs
-            let mut error : Vec<f64> = Vec::with_capacity(layer_outputs[layer_outputs.len() - 1].len());
+            let mut final_error : Vec<f64> = Vec::with_capacity(layer_outputs[layer_outputs.len() - 1].len());
             for (i,target) in targets[top_level_input].iter().enumerate(){
-                error.push(target - layer_outputs[layer_outputs.len() - 1][i]);
+                final_error.push(target - layer_outputs[layer_outputs.len() - 1][i]);
             }
 
             // This casually breaks
             // This logic is all wrong
+            let mut hidden_errors : Vec<Vec<f64>> = vec![];
             for (i, layer_output) in layer_outputs.iter().enumerate().rev(){
                 if i == layer_outputs.len() - 1 {
                     continue;
@@ -190,7 +191,7 @@ impl Network {
                 let mut this_layer_error = vec![];
                 for (j, neuron_output) in layer_output.iter().enumerate(){
                     let mut this_neuron_error = 0.0;
-                    for (k,e) in error.iter().enumerate(){
+                    for (k,e) in final_error.iter().enumerate(){
                         let l = &self.layers[i];
                         let ns = &l.nuerons[k];
                         // This line is wrong

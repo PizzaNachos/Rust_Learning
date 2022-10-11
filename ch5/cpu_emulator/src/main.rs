@@ -53,10 +53,10 @@ impl RiscVCpu{
     }
 
     fn l_type(&mut self, instruction: u32){
-        let t = (instruction >> 11) & 0b111;
-        let rd = (instruction >> 7) & 0xf;
-        let rs1 = (instruction >> 15) & 0xf;
-        let imm = instruction >> 18;
+        let t = (instruction >> 12) & 0b111;
+        let rd = (instruction >> 7) & 0x1f;
+        let rs1 = (instruction >> 15) & 0x1f;
+        let imm = instruction >> 20;
 
         print!("t:{}", t);
 
@@ -75,7 +75,7 @@ fn main() {
     let mut cpu = RiscVCpu::new();
     let add_ten_to_r1 : u32 = 0b00000001111_0000_000_0000_0010011;
 
-    let add_something_to_31 : u32 = 0b01010000011_0001_000_1111_0010011;
+    let add_something_to_31 : u32 = 0b010100011_00000_000_11111_0010011;
     // add_ten_to_r1.to_ne_bytes().to_vec()
     match cpu.load_program(add_something_to_31.to_be_bytes().to_vec())
     {

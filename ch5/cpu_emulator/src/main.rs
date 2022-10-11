@@ -26,6 +26,7 @@ impl RiscVCpu{
 
             match opcode{
                 0b00010011 => self.l_type(instruction),
+                0b00110011 => self.r_type(instruction),
                 _ => println!("Un-supported Instruction {:08b}", opcode),
             }
 
@@ -58,14 +59,28 @@ impl RiscVCpu{
         let rs1 = (instruction >> 15) & 0x1f;
         let imm = instruction >> 20;
 
-        // print!("t:{}", t);
-
         match t {
             // ADDI
-            0b000 => {
-                self.registers[rd as usize] = self.registers[rs1 as usize] + imm;
-            }
+            0b000 => self.registers[rd as usize] = self.registers[rs1 as usize] + imm,
             _ => println!("Not impliemted I type"),
+        }
+    }
+
+    fn r_type(&mut self, instruction: u32){
+        let t = (instruction >> 12) & 0b111;
+        let rd = (instruction >> 7) & 0x1f;
+        let rs1 = (instruction >> 15) & 0x1f;
+        let rs2 = (instruction >> 20) & 0x1f;
+        let func = instruction >> 25;
+
+        match t {
+            // AND
+            0b111 =>self.registers[rd as usize] = self.registers[rs1 as usize] & self.registers[rs2 as usize],
+            // OR
+            0b110 =>self.registers[rd as usize] = self.registers[rs1 as usize] | self.registers[rs2 as usize],
+            // XOR
+            0b100 =>self.registers[rd as usize] = self.registers[rs1 as usize] ^ self.registers[rs2 as usize],
+            _ => println!("Not impliemted R type"),
         }
     }
 
@@ -73,14 +88,14 @@ impl RiscVCpu{
 
 fn main() {
     let mut cpu = RiscVCpu::new();
-    let add_ten_to_r1 : u32 = 0b000001111_00000_000_00000_0010011;
-    let add_something_to_31 : u32 = 0b010100011_00000_000_11111_0010011;
+    // let add_ten_to_r1 : u32 = 0b000001111_00000_000_00000_0010011;
+    // let add_something_to_31 : u32 = 0b010100011_00000_000_11111_0010011;
 
     // let i:u64 = 0b010100011_00000_000_11111_0010011_000001111_00000_000_00000_0010011;
     let program = read_ascii_file_to_vec("program.txt".to_string());
-    for (i, byte) in program.iter().enumerate(){
-        print!("{:08b} ", byte);
-    }
+    // for (i, byte) in program.iter().enumerate(){
+    //     print!("{:08b} ", byte);
+    // }
     // let p = [add_ten_to_r1.to_be_bytes(), add_something_to_31.to_be_bytes()];
     // add_ten_to_r1.to_ne_bytes().to_vec()
     match cpu.load_program(program)
@@ -93,7 +108,7 @@ fn main() {
     
     println!("CPU Registers: ");
     for (i,r) in cpu.registers.iter().enumerate(){
-        println!("R# {} = {:032b}={}",i, *r, *r)
+        println!("R# {:05b} = {:032b}={}",i, *r, *r)
 
     }
 

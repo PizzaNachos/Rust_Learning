@@ -21,8 +21,8 @@ impl RiscVCpu{
             };
 
             let opcode = instruction & 0x7f;
-            println!("In: {:032b}", instruction);
-            println!("Opcode: {}, {:08b}", opcode, opcode);
+            println!("\nIn: {:032b}", instruction);
+            println!("\tOpcode: {}, {:08b}", opcode, opcode);
 
             match opcode{
                 0b00010011 => self.l_type(instruction),
@@ -38,7 +38,7 @@ impl RiscVCpu{
             return Err(())
         }
         for (i,instruction) in program_bytes.iter().enumerate(){
-            println!("Adding Byte {:08b}", *instruction);
+            // println!("Adding Byte {:08b}", *instruction);
             self.program_memory[i] = *instruction;
         }
         Ok(())
@@ -58,7 +58,7 @@ impl RiscVCpu{
         let rs1 = (instruction >> 15) & 0x1f;
         let imm = instruction >> 20;
 
-        print!("t:{}", t);
+        // print!("t:{}", t);
 
         match t {
             // ADDI
@@ -73,11 +73,17 @@ impl RiscVCpu{
 
 fn main() {
     let mut cpu = RiscVCpu::new();
-    let add_ten_to_r1 : u32 = 0b00000001111_0000_000_0000_0010011;
-
+    let add_ten_to_r1 : u32 = 0b000001111_00000_000_00000_0010011;
     let add_something_to_31 : u32 = 0b010100011_00000_000_11111_0010011;
+
+    // let i:u64 = 0b010100011_00000_000_11111_0010011_000001111_00000_000_00000_0010011;
+    let program = read_ascii_file_to_vec("program.txt".to_string());
+    for (i, byte) in program.iter().enumerate(){
+        print!("{:08b} ", byte);
+    }
+    // let p = [add_ten_to_r1.to_be_bytes(), add_something_to_31.to_be_bytes()];
     // add_ten_to_r1.to_ne_bytes().to_vec()
-    match cpu.load_program(add_something_to_31.to_be_bytes().to_vec())
+    match cpu.load_program(program)
     {
         Ok(_) => {
             cpu.run();
@@ -87,7 +93,7 @@ fn main() {
     
     println!("CPU Registers: ");
     for (i,r) in cpu.registers.iter().enumerate(){
-        println!("R# {} = {:032b}",i, *r)
+        println!("R# {} = {:032b}={}",i, *r, *r)
 
     }
 
@@ -98,4 +104,33 @@ fn main() {
     // cpu.run();
 
     // println!("Cpu Register 0: {}", cpu.registers[0]);
+}
+
+fn read_ascii_file_to_vec(name: String) -> Vec<u8>{
+    let mut r = vec![];
+
+    if let Ok(file) = std::fs::read_to_string(name){
+        let mut i = 0;
+        let mut num : u8 = 0;
+        for char in file.chars().into_iter(){
+            match char{
+                '0' => {
+                    i += 1;
+                    num = num << 1;
+                },
+                '1' => {
+                    i += 1;
+                    num = (num << 1) | 1;
+                },
+                _ => continue
+            }
+
+            if i % 8 == 0{
+                r.push(num);
+                i = 0;
+                num = 0;
+            }
+        }
+    };
+    return r;
 }

@@ -14,41 +14,88 @@ impl RiscVCpu{
     }
 
     fn run(&mut self){
-        let instruction = self.read_instruction();
+        loop{
+            let instruction = self.read_instruction();
+            if instruction == 0x0000 {
+                break;
+            };
 
-        let opcode = instruction & 0x01111111;
-        println!("{:032b}", opcode)
-        // let c = ((opcode & 0xF000)>> 12) as u8;
-        // let x = ((opcode & 0x0F00)>> 8) as u8;
-        // let y = ((opcode & 0x00F0)>> 4) as u8;
-        // let d = ((opcode & 0x000F)>> 0) as u8;
+            let opcode = instruction & 0x7f;
+            println!("In: {:032b}", instruction);
+            println!("Opcode: {}, {:08b}", opcode, opcode);
 
-        // match (c,x,y,d) {
-        //     (0x8, _, _, 0x4) => self.add_xy(x,y),
-        //     _ => println!("Not Implimented")
-        // }
+            match opcode{
+                0b00010011 => self.l_type(instruction),
+                _ => println!("Un-supported Instruction {:08b}", opcode),
+            }
+
+            self.program_counter += 4;
+        }
 
     }
+    fn load_program(&mut self, program_bytes: Vec<u8>) -> Result<(), ()>{
+        if program_bytes.len() > 0x1000 {
+            return Err(())
+        }
+        for (i,instruction) in program_bytes.iter().enumerate(){
+            println!("Adding Byte {:08b}", *instruction);
+            self.program_memory[i] = *instruction;
+        }
+        Ok(())
+    }
+    fn new() -> RiscVCpu{
+        RiscVCpu{
+            program_counter: 0,
+            registers: [0; 32],
+            program_memory: [0; 0x1000],
+            global_memory: [0; 0x1000]
+        }
+    }
 
-    // fn add_xy(&mut self, x:u8, y:u8){
-    //     self.registers[x as usize] += self.registers[_y as usize];
-    // }
+    fn l_type(&mut self, instruction: u32){
+        let t = (instruction >> 11) & 0b111;
+        let rd = (instruction >> 7) & 0xf;
+        let rs1 = (instruction >> 15) & 0xf;
+        let imm = instruction >> 18;
+
+        print!("t:{}", t);
+
+        match t {
+            // ADDI
+            0b000 => {
+                self.registers[rd as usize] = self.registers[rs1 as usize] + imm;
+            }
+            _ => println!("Not impliemted I type"),
+        }
+    }
+
 }
 
 fn main() {
-    let mut cpu = RiscVCpu{
-        program_counter: 0,
-        registers: [0; 32],
-        program_memory: [15; 0x1000],
-        global_memory: [0; 0x1000]
-    };
+    let mut cpu = RiscVCpu::new();
+    let add_ten_to_r1 : u32 = 0b00000001111_0000_000_0000_0010011;
 
+    let add_something_to_31 : u32 = 0b01010000011_0001_000_1111_0010011;
+    // add_ten_to_r1.to_ne_bytes().to_vec()
+    match cpu.load_program(add_something_to_31.to_be_bytes().to_vec())
+    {
+        Ok(_) => {
+            cpu.run();
+        },
+        Err(_) => println!("Program too large!")
+    };
+    
+    println!("CPU Registers: ");
+    for (i,r) in cpu.registers.iter().enumerate(){
+        println!("R# {} = {:032b}",i, *r)
+
+    }
 
     // cpu.current_operation = 0x8014;
     // cpu.registers[0] = 5;
     // cpu.registers[1] = 10;
 
-    cpu.run();
+    // cpu.run();
 
     // println!("Cpu Register 0: {}", cpu.registers[0]);
 }

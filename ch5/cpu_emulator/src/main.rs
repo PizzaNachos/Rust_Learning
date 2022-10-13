@@ -1,8 +1,7 @@
 struct RiscVCpu{
     program_counter: usize,
     registers: [u32;32],
-    program_memory: [u8; 0x1000],
-    global_memory: [u8; 0x1000],
+    program_memory: [u8; 0x2000],
 }
 
 impl RiscVCpu{
@@ -22,11 +21,13 @@ impl RiscVCpu{
 
             let opcode = instruction & 0x7f;
             println!("\nIn: {:032b}", instruction);
-            println!("\tOpcode: {}, {:08b}", opcode, opcode);
+            println!("\tOpcode: {:08b}", opcode);
 
             match opcode{
                 0b00010011 => self.l_type(instruction),
                 0b00110011 => self.r_type(instruction),
+                0b00000011 => self.load_type(instruction),
+                0b00100011 => self.store_type(instruction),
                 _ => println!("Un-supported Instruction {:08b}", opcode),
             }
 
@@ -48,8 +49,7 @@ impl RiscVCpu{
         RiscVCpu{
             program_counter: 0,
             registers: [0; 32],
-            program_memory: [0; 0x1000],
-            global_memory: [0; 0x1000]
+            program_memory: [0; 0x2000],
         }
     }
 
@@ -83,21 +83,69 @@ impl RiscVCpu{
             _ => println!("Not impliemted R type"),
         }
     }
+    fn load_type(&mut self, instruction: u32){
+        let t = (instruction >> 12) & 0b111;
+        let rd = (instruction >> 7) & 0x1f;
+        let rs1 = (instruction >> 15) & 0x1f;
+        let imm = instruction >> 20;
+
+        match t {
+            // LB
+            0b000 => self.registers[rd as usize] = self.program_memory[rs1 as usize] as u32,
+            // LH
+            0b001 => {
+                self.registers[rd as usize] = (self.program_memory[rs1 as usize] as u32) << 8 | (self.program_memory[rs1 as usize + 1] as u32)
+             } ,
+            // LW
+            0b010 => {
+                let mut num = (self.program_memory[rs1 as usize] as u32);
+                num = num << 8;
+                num = num | (self.program_memory[rs1 as usize + 1] as u32);
+                num = num << 8;
+                num = num | (self.program_memory[rs1 as usize + 2] as u32);
+                num = num << 8;
+                num = num | (self.program_memory[rs1 as usize + 3] as u32);
+                self.registers[rd as usize] = num;
+            },
+            _ => println!("Not impliemted load type"),
+        }
+    }
+    fn store_type(&mut self, instruction: u32){
+        let t = (instruction >> 12) & 0b111;
+        let rd = (instruction >> 7) & 0x1f;
+        let source = (instruction >> 15) & 0x1f;
+        let destination = (instruction >> 20) & 0x1f;
+        let imm = instruction >> 25;
+
+        match t {
+            // SB
+            0b000 => {
+                let num = self.registers[source as usize];
+                self.program_memory[destination as usize] = (num & 0xf) as u8;
+            },
+            // SH
+            0b001 => {
+                let num = self.registers[source as usize];
+                self.program_memory[destination as usize] = (num & 0xf) as u8;
+                self.program_memory[destination as usize + 1] = (num >> 8  & 0xf) as u8;             
+            } ,
+            // SW
+            0b010 => {
+                let num = self.registers[source as usize];
+                self.program_memory[destination as usize] = (num & 0xf) as u8;
+                self.program_memory[destination as usize + 1] = (num >> 8  & 0xf) as u8;
+                self.program_memory[destination as usize + 2] = (num >> 16 & 0xf) as u8;
+                self.program_memory[destination as usize + 3] = (num >> 24 & 0xf) as u8;
+            },
+            _ => println!("Not impliemted load type"),
+        }
+    }
 
 }
 
 fn main() {
     let mut cpu = RiscVCpu::new();
-    // let add_ten_to_r1 : u32 = 0b000001111_00000_000_00000_0010011;
-    // let add_something_to_31 : u32 = 0b010100011_00000_000_11111_0010011;
-
-    // let i:u64 = 0b010100011_00000_000_11111_0010011_000001111_00000_000_00000_0010011;
     let program = read_ascii_file_to_vec("program.txt".to_string());
-    // for (i, byte) in program.iter().enumerate(){
-    //     print!("{:08b} ", byte);
-    // }
-    // let p = [add_ten_to_r1.to_be_bytes(), add_something_to_31.to_be_bytes()];
-    // add_ten_to_r1.to_ne_bytes().to_vec()
     match cpu.load_program(program)
     {
         Ok(_) => {
@@ -109,16 +157,7 @@ fn main() {
     println!("CPU Registers: ");
     for (i,r) in cpu.registers.iter().enumerate(){
         println!("R# {:05b} = {:032b}={}",i, *r, *r)
-
     }
-
-    // cpu.current_operation = 0x8014;
-    // cpu.registers[0] = 5;
-    // cpu.registers[1] = 10;
-
-    // cpu.run();
-
-    // println!("Cpu Register 0: {}", cpu.registers[0]);
 }
 
 fn read_ascii_file_to_vec(name: String) -> Vec<u8>{

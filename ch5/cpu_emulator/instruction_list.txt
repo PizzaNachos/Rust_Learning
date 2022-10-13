@@ -1,0 +1,10 @@
+ADDI
+  Im val     src   fp  dest  opcode
+000000001111_00000_000_00000_0010011
+
+
+
+Load
+    opcode  
+    0000011
+Store

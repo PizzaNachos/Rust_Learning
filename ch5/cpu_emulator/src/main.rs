@@ -98,13 +98,14 @@ impl RiscVCpu{
              } ,
             // LW
             0b010 => {
-                let mut num = (self.program_memory[rs1 as usize] as u32);
+                let reg = self.registers[rs1 as usize];
+                let mut num = self.program_memory[reg as usize] as u32;
                 num = num << 8;
-                num = num | (self.program_memory[rs1 as usize + 1] as u32);
+                num = num | (self.program_memory[reg as usize + 1] as u32);
                 num = num << 8;
-                num = num | (self.program_memory[rs1 as usize + 2] as u32);
+                num = num | (self.program_memory[reg as usize + 2] as u32);
                 num = num << 8;
-                num = num | (self.program_memory[rs1 as usize + 3] as u32);
+                num = num | (self.program_memory[reg as usize + 3] as u32);
                 self.registers[rd as usize] = num;
             },
             _ => println!("Not impliemted load type"),
@@ -117,6 +118,7 @@ impl RiscVCpu{
         let destination = (instruction >> 20) & 0x1f;
         let imm = instruction >> 25;
 
+        println!("Source: {:05b}\nDest {:05b}", source, destination);
         match t {
             // SB
             0b000 => {
@@ -132,16 +134,19 @@ impl RiscVCpu{
             // SW
             0b010 => {
                 let num = self.registers[source as usize];
-                self.program_memory[destination as usize] = (num & 0xf) as u8;
-                self.program_memory[destination as usize + 1] = (num >> 8  & 0xf) as u8;
-                self.program_memory[destination as usize + 2] = (num >> 16 & 0xf) as u8;
-                self.program_memory[destination as usize + 3] = (num >> 24 & 0xf) as u8;
+                let dest = self.registers[destination as usize];
+                self.program_memory[dest as usize] = ((num >> 24) & 0xff) as u8;
+                self.program_memory[dest as usize + 1] = ((num >> 16) & 0xff) as u8;
+                self.program_memory[dest as usize + 2] = ((num >> 8)  & 0xff) as u8;
+                self.program_memory[dest as usize + 3] = (num & 0xff) as u8;
+                println!("Num:{}", num);
             },
             _ => println!("Not impliemted load type"),
         }
     }
 
 }
+
 
 fn main() {
     let mut cpu = RiscVCpu::new();
@@ -157,6 +162,19 @@ fn main() {
     println!("CPU Registers: ");
     for (i,r) in cpu.registers.iter().enumerate(){
         println!("R# {:05b} = {:032b}={}",i, *r, *r)
+    }
+
+    println!("Memory");
+    let mut num : u32= 0;
+    for (i,r) in cpu.program_memory.iter().enumerate(){
+        if i % 4 == 0{
+            if num != 0{
+                println!("{}, {:032b}",i, num);
+            }
+            num = 0;
+            continue;
+        }
+        num = (num << 8) | *r as u32; 
     }
 }
 

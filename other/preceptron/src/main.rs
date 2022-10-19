@@ -176,40 +176,26 @@ impl Network {
             }
 
             // Error array is targets - layer_outputs
-            let mut final_error : Vec<f64> = Vec::with_capacity(layer_outputs[layer_outputs.len() - 1].len());
-            for (i,target) in targets[top_level_input].iter().enumerate(){
-                final_error.push(target - layer_outputs[layer_outputs.len() - 1][i]);
+            let mut layer_errors : Vec<Vec<f64>> = Vec::with_capacity(layer_outputs.len());
+            for (i,output) in layer_outputs.iter().enumerate().rev(){
+                let mut this_layer_error : Vec<f64> = Vec::new();
+                let mut this_target : Vec<f64> = vec![];
+                // Cacluate the targest for this layer 
+                // (First time its the network targets, then we calculate based off of the layer errors)
+                if i == (layer_outputs.len() - 1){
+                    this_target = targets[top_level_input].clone();
+                } else {
+                    this_target = layer_errors[i + 1].clone();
+                }
+                // Remove the mut
+                let this_target = this_target;
+                for (t,l_t) in this_target.iter().enumerate(){
+                    this_layer_error.push(l_t )
+                }
+
+                // final_error.push(target - layer_outputs[layer_outputs.len() - 1][i]);
             }
 
-            // This casually breaks
-            // This logic is all wrong
-            let mut hidden_errors : Vec<Vec<f64>> = vec![];
-            for (i, layer_output) in layer_outputs.iter().enumerate().rev(){
-                if i == layer_outputs.len() - 1 {
-                    continue;
-                }
-                let mut this_layer_error = vec![];
-                for (j, neuron_output) in layer_output.iter().enumerate(){
-                    let mut this_neuron_error = 0.0;
-                    for (k,e) in final_error.iter().enumerate(){
-                        let l = &self.layers[i];
-                        let ns = &l.nuerons[k];
-                        // This line is wrong
-                        let ws = ns.weights[j];
-                        this_neuron_error += ws * e;
-                    }
-                    this_layer_error.push(this_neuron_error);
-                }
-                total_error[i] = this_layer_error;
-            }
-            
-            for (i,layer_error) in total_error.iter().enumerate(){
-                for (j, neural_error) in layer_error.iter().enumerate(){
-                    for (k, weight) in self.layers[i].nuerons[j].weights.iter().enumerate(){
-                        agregate_weight_changes[i][j][k] += neural_error; 
-                    }
-                }
-            }
         };
 
         for (i,layer_to_change) in agregate_weight_changes.iter().enumerate(){

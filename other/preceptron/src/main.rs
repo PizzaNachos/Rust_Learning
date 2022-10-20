@@ -186,11 +186,13 @@ impl Network {
             for (index,o_error) in output_error.iter().enumerate() {
                 hidden_error[my_index] += self.layers[self.layers.len() - 1].nuerons[0].weights[0] * o_error;
                 hidden_error[my_index] += self.layers[self.layers.len() - 1].nuerons[1].weights[0] * o_error;
+                break;
                 // hidden_error[index] += self.layers[self.layers.len() - 1].nuerons[index].weights[2] * o_error;
 
                 // hidden_error.push(o_error - targets[top_level_input][index])
             }
             agregate_weight_changes[0][0] = hidden_error.clone();
+            agregate_weight_changes[1][0] = output_error.clone();
             // for (i,l) in self.layers.iter().enumerate(){
             //     for (j,n) in (*l).nuerons.iter().enumerate(){
             //         println!("L:{}, N: {} \t{:?}", i, j , (*n).weights);
@@ -202,7 +204,7 @@ impl Network {
             // }
 
             println!("oe: {:?}", output_error);
-            // println!("he: {:?}", hidden_error);
+            println!("he: {:?}", hidden_error);
 
 
 
@@ -232,6 +234,7 @@ impl Network {
         for (i,layer_to_change) in agregate_weight_changes.iter().enumerate(){
             for (j,weights) in layer_to_change.iter().enumerate(){
                 for(k, weight) in weights.iter().enumerate(){
+                    println!("changing l{},n{},w{} by {}",i,j,k,weight * learning_rate);
                     self.layers[i].nuerons[j].weights[k] += weight * learning_rate;
                 }
             }
@@ -281,12 +284,12 @@ pub fn random_f64_0_1() -> f64{
             byts[0] = 0b0_0111111;
             byts[1] = (byts[1] | 0b1110_0000) & (byts[1] & 0b0000_1111);
             // Times 4 for some reason, experminets show we need to do this to normalize it
-            let or_mask:u64 = 0b0_01111111111_0000000000000000000000000000000000000000000000000000;
-            let and_mask:u64 = 0b0_01111111111_1111111111111111111111111111111111111111111111111111;
+            // let or_mask:u64 = 0b0_01111111111_0000000000000000000000000000000000000000000000000000;
+            // let and_mask:u64 = 0b0_01111111111_1111111111111111111111111111111111111111111111111111;
 
-            let num = u64::from_be_bytes(byts) | or_mask;
-            let num = num & and_mask;
-            f64::from_be_bytes(num.to_le_bytes()) * 2.0
+            // let num = u64::from_be_bytes(byts) | or_mask;
+            // let num = num & and_mask;
+            f64::from_be_bytes(byts) * 2.0
         },
         Err(_) => 0.5
     }
@@ -354,11 +357,11 @@ pub fn main() {
     let inputs = vec![vec![1.0,2.0];1];
     let targets = vec![vec![1.1, 4.0];1];
 
-    network.back_propigate(inputs.clone(), targets.clone(), 0.5);
-    network.back_propigate(inputs.clone(), targets.clone(), 0.1);
+    network.back_propigate(inputs.clone(), targets.clone(), 10.5);
+    network.back_propigate(inputs.clone(), targets.clone(), 10.1);
     network.back_propigate(inputs.clone(), targets.clone(), 10.0);
     network.back_propigate(inputs.clone(), targets.clone(), 0.1);
-    network.back_propigate(inputs.clone(), targets.clone(), 0.1);
+    network.back_propigate(inputs.clone(), targets.clone(), 10.1);
 
 }
 

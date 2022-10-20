@@ -190,18 +190,19 @@ impl Network {
 
                 // hidden_error.push(o_error - targets[top_level_input][index])
             }
-            for (i,l) in self.layers.iter().enumerate(){
-                for (j,n) in (*l).nuerons.iter().enumerate(){
-                    println!("L:{}, N: {} \t{:?}", i, j , (*n).weights);
-                }
-            }
+            agregate_weight_changes[0][0] = hidden_error.clone();
+            // for (i,l) in self.layers.iter().enumerate(){
+            //     for (j,n) in (*l).nuerons.iter().enumerate(){
+            //         println!("L:{}, N: {} \t{:?}", i, j , (*n).weights);
+            //     }
+            // }
 
-            for (i,l) in layer_outputs.iter().enumerate(){
-                println!("Layer:{}, output: {:?}", i, *l);
-            }
+            // for (i,l) in layer_outputs.iter().enumerate(){
+            //     println!("Layer:{}, output: {:?}", i, *l);
+            // }
 
             println!("oe: {:?}", output_error);
-            println!("he: {:?}", hidden_error);
+            // println!("he: {:?}", hidden_error);
 
 
 
@@ -231,7 +232,7 @@ impl Network {
         for (i,layer_to_change) in agregate_weight_changes.iter().enumerate(){
             for (j,weights) in layer_to_change.iter().enumerate(){
                 for(k, weight) in weights.iter().enumerate(){
-                    self.layers[i].nuerons[j].weights[k] += weight;
+                    self.layers[i].nuerons[j].weights[k] += weight * learning_rate;
                 }
             }
         }
@@ -353,6 +354,11 @@ pub fn main() {
     let inputs = vec![vec![1.0,2.0];1];
     let targets = vec![vec![1.1, 4.0];1];
 
-    network.back_propigate(inputs, targets, 0.1);
+    network.back_propigate(inputs.clone(), targets.clone(), 0.5);
+    network.back_propigate(inputs.clone(), targets.clone(), 0.1);
+    network.back_propigate(inputs.clone(), targets.clone(), 10.0);
+    network.back_propigate(inputs.clone(), targets.clone(), 0.1);
+    network.back_propigate(inputs.clone(), targets.clone(), 0.1);
+
 }
 

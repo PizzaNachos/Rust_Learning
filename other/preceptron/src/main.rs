@@ -11,7 +11,7 @@ struct Neuron{
 impl Neuron {
     fn new(number_of_weights : usize) -> Neuron {
                 // TODO! Replace with random number generator
-        let random_bias = (random_f64_0_1() - 0.5) * 2.0;
+        let random_bias = 0.0;//(random_f64_0_1() - 0.5) * 2.0;
         let mut random_weights = Vec::with_capacity(number_of_weights);
         for _ in 0..number_of_weights{
             // TODO! Replace with random number generator
@@ -176,25 +176,55 @@ impl Network {
             }
 
             // Error array is targets - layer_outputs
-            let mut layer_errors : Vec<Vec<f64>> = Vec::with_capacity(layer_outputs.len());
-            for (i,output) in layer_outputs.iter().enumerate().rev(){
-                let mut this_layer_error : Vec<f64> = Vec::new();
-                let mut this_target : Vec<f64> = vec![];
-                // Cacluate the targest for this layer 
-                // (First time its the network targets, then we calculate based off of the layer errors)
-                if i == (layer_outputs.len() - 1){
-                    this_target = targets[top_level_input].clone();
-                } else {
-                    this_target = layer_errors[i + 1].clone();
-                }
-                // Remove the mut
-                let this_target = this_target;
-                for (t,l_t) in this_target.iter().enumerate(){
-                    this_layer_error.push(l_t )
-                }
-
-                // final_error.push(target - layer_outputs[layer_outputs.len() - 1][i]);
+            let mut output_error : Vec<f64> = Vec::new();
+            for (index,something) in layer_outputs[layer_outputs.len() - 1].iter().enumerate() {
+                output_error.push(something - targets[top_level_input][index])
             }
+            // TODO: cant hard code 3
+            let mut hidden_error : Vec<f64> = vec![0.0;1];
+            let my_index = 0;
+            for (index,o_error) in output_error.iter().enumerate() {
+                hidden_error[my_index] += self.layers[self.layers.len() - 1].nuerons[0].weights[0] * o_error;
+                hidden_error[my_index] += self.layers[self.layers.len() - 1].nuerons[1].weights[0] * o_error;
+                // hidden_error[index] += self.layers[self.layers.len() - 1].nuerons[index].weights[2] * o_error;
+
+                // hidden_error.push(o_error - targets[top_level_input][index])
+            }
+            for (i,l) in self.layers.iter().enumerate(){
+                for (j,n) in (*l).nuerons.iter().enumerate(){
+                    println!("L:{}, N: {} \t{:?}", i, j , (*n).weights);
+                }
+            }
+
+            for (i,l) in layer_outputs.iter().enumerate(){
+                println!("Layer:{}, output: {:?}", i, *l);
+            }
+
+            println!("oe: {:?}", output_error);
+            println!("he: {:?}", hidden_error);
+
+
+
+            // let mut layer_errors : 
+            // for (i,output) in layer_outputs.iter().enumerate().rev(){
+            //     let mut this_target : Vec<f64> = vec![];
+            //     // Cacluate the targest for this layer 
+            //     // (First time its the network targets, then we calculate based off of the layer errors)
+            //     if i == (layer_outputs.len() - 1){
+            //         this_target = targets[top_level_input].clone();
+            //     } else {
+            //         this_target = layer_errors[i + 1].clone();
+            //     }
+            //     // Remove the mut
+            //     let this_target = this_target;
+
+            //     let mut this_layer_error : Vec<f64> = Vec::new();
+            //     for (t,l_t) in this_target.iter().enumerate(){
+            //         this_layer_error.push(l_t )
+            //     }
+
+            //     // final_error.push(target - layer_outputs[layer_outputs.len() - 1][i]);
+            // }
 
         };
 
@@ -237,13 +267,25 @@ pub fn random_f64_0_1() -> f64{
     let mut byts = [0;8];
     match getrandom(&mut byts){
         Ok(_) => {
+            println!("{:?}", byts);
+            // let base: u32 = ;
+            // let large_n = (n as u32) << 15;
+            // let f32_bits = base | large_n;
+            // let m = f32::from_bits(f32_bits);
+            // 2.0 * ( m - 0.5 )
             // We have byts filled with random bytes and we need to 
             // Normalize it to [0,1) by changing the exponent term 
             // 0b0_01111111110_00000000000000000000000
+            //   0_01111111111
             byts[0] = 0b0_0111111;
-            byts[1] = (byts[1] | 0b1110_0000) & (byts[1] & 0b1110_1111);
+            byts[1] = (byts[1] | 0b1110_0000) & (byts[1] & 0b0000_1111);
             // Times 4 for some reason, experminets show we need to do this to normalize it
-            f64::from_be_bytes(byts) * 4.0
+            let or_mask:u64 = 0b0_01111111111_0000000000000000000000000000000000000000000000000000;
+            let and_mask:u64 = 0b0_01111111111_1111111111111111111111111111111111111111111111111111;
+
+            let num = u64::from_be_bytes(byts) | or_mask;
+            let num = num & and_mask;
+            f64::from_be_bytes(num.to_le_bytes()) * 2.0
         },
         Err(_) => 0.5
     }
@@ -306,10 +348,10 @@ fn generate_poly() -> Box<dyn Fn(f64, f64) -> f64>{
 
 // #[wasm_bindgen(start)]
 pub fn main() {
-    let network_layers = vec![2,3,2];
+    let network_layers = vec![1,1,2];
     let mut network = Network::new(network_layers);
-    let inputs = vec![vec![1.0;2];2];
-    let targets = vec![vec![1.0;2];2];
+    let inputs = vec![vec![1.0,2.0];1];
+    let targets = vec![vec![1.1, 4.0];1];
 
     network.back_propigate(inputs, targets, 0.1);
 }

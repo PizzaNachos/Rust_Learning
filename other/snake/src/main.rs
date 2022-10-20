@@ -20,7 +20,8 @@ enum Direction {
     North,
     South,
     East,
-    West
+    West,
+    None
 }
 
 struct SnakePeice {
@@ -31,7 +32,7 @@ struct SnakePeice {
 }
 impl SnakePeice{
     fn new(x:usize, y:usize) -> SnakePeice{
-        SnakePeice { x: x, y: y, velocity: Direction::South, next: Box::new(Option::None) }
+        SnakePeice { x: x, y: y, velocity: Direction::None, next: Box::new(Option::None) }
     }
     fn move_peice_and_children(&mut self){
 
@@ -40,6 +41,7 @@ impl SnakePeice{
             Direction::South => {self.y += 1;},
             Direction::East => {self.y -= 1},
             Direction::West => {self.x += 1;}, 
+            Direction::None => ()
         }
         self.x = if self.x == 0 {
             25
@@ -86,16 +88,14 @@ impl SnakePeice{
             None => vector
         }
     }
-    fn add_child(&mut self){
-        match &(*(self.next)) {
-            Some(n) => n.add_child(),
+    fn add_cild(&mut self){
+        let mut n = (*(self.next)).as_mut();
+        match n {
+            Some(mut n) => {
+                (*n).add_cild();
+            }
             None => {
-                *(self.next) = Option::Some(SnakePeice{
-                    x: self.x,
-                    y: self.y - 1,
-                    velocity: self.velocity,
-                    next: Box::new(Option::None)
-                })
+                *(self.next) = Option::Some(SnakePeice::new(self.x,self.y));
             }
         }
 
@@ -177,10 +177,7 @@ fn game_loop(mut board : Vec<Vec<Square>>){
     let mut previous_loop_time = time::Instant::now();
 
     let mut snake = SnakePeice::new(10,10);
-    *(snake.next) = Option::Some(SnakePeice::new(11,10));
-    // *((*(snake.next)).unwrap().next) = Option::Some(SnakePeice::new(12,10));
-    // *(snake.next) = Option::Some(SnakePeice::new(11,10));
-    // *(snake.next) = Option::Some(SnakePeice::new(11,10));
+    
     loop {
         let inside_key = device_state.get_keys();
         if !inside_key.is_empty() {
@@ -197,6 +194,10 @@ fn game_loop(mut board : Vec<Vec<Square>>){
                 _ => (),
             }
             snake.move_peice_and_children();
+            if check_positions(snake.get_vector_of_positions()) == false{
+                println!("YOU DIED");
+                break;
+            };
             board = put_snake_on_board(board, &snake);
             render_board(&board);
 
@@ -250,4 +251,15 @@ fn put_snake_on_board(mut board: Vec<Vec<Square>>, snake : &SnakePeice) -> Vec<V
     }
 
     return board
+}
+
+fn check_positions(positions : Vec<(usize,usize)>) -> bool{
+    for (x1,y1) in positions.iter(){
+        for (x2,y2) in positions.iter(){
+            if x1 == x2 && y1 == y2 {
+                return false;
+            }
+        }
+    }
+    return true;
 }

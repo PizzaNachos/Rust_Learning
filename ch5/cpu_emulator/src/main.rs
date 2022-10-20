@@ -1,15 +1,15 @@
 struct RiscVCpu{
-    program_counter: usize,
+    program_counter: u32,
     registers: [u32;32],
     program_memory: [u8; 0x2000],
 }
 
 impl RiscVCpu{
     fn read_instruction(&self) -> u32{
-        let first = self.program_memory[self.program_counter] as u32 ;
-        let second = first << 8 | self.program_memory[self.program_counter + 1] as u32 ;
-        let third = second << 8 | self.program_memory[self.program_counter + 2] as u32 ;
-        third << 8 | self.program_memory[self.program_counter + 3] as u32 
+        let first = self.program_memory[self.program_counter as usize] as u32 ;
+        let second = first << 8 | self.program_memory[self.program_counter as usize + 1] as u32 ;
+        let third = second << 8 | self.program_memory[self.program_counter as usize + 2] as u32 ;
+        third << 8 | self.program_memory[self.program_counter as usize + 3] as u32 
     }
 
     fn run(&mut self){
@@ -28,6 +28,8 @@ impl RiscVCpu{
                 0b00110011 => self.r_type(instruction),
                 0b00000011 => self.load_type(instruction),
                 0b00100011 => self.store_type(instruction),
+                0b01101111 => self.jump_imm_link(instruction),
+                0b01100111 => self.jump_imm_link_reg(instruction),
                 _ => println!("Un-supported Instruction {:08b}", opcode),
             }
 
@@ -54,6 +56,7 @@ impl RiscVCpu{
     }
 
     fn l_type(&mut self, instruction: u32){
+        println!("\tl_type");
         let t = (instruction >> 12) & 0b111;
         let rd = (instruction >> 7) & 0x1f;
         let rs1 = (instruction >> 15) & 0x1f;
@@ -61,12 +64,14 @@ impl RiscVCpu{
 
         match t {
             // ADDI
-            0b000 => self.registers[rd as usize] = self.registers[rs1 as usize] + imm,
+            0b000 => self.registers[rd as usize] = (self.registers[rs1 as usize] + imm),// as i32 * ((imm >> 31) as i32 * -1)) as u32,
             _ => println!("Not impliemted I type"),
         }
     }
 
     fn r_type(&mut self, instruction: u32){
+        println!("\tr_type");
+
         let t = (instruction >> 12) & 0b111;
         let rd = (instruction >> 7) & 0x1f;
         let rs1 = (instruction >> 15) & 0x1f;
@@ -84,6 +89,8 @@ impl RiscVCpu{
         }
     }
     fn load_type(&mut self, instruction: u32){
+        println!("\tLoad");
+
         let t = (instruction >> 12) & 0b111;
         let rd = (instruction >> 7) & 0x1f;
         let rs1 = (instruction >> 15) & 0x1f;
@@ -112,13 +119,12 @@ impl RiscVCpu{
         }
     }
     fn store_type(&mut self, instruction: u32){
+        println!("\tStore");
         let t = (instruction >> 12) & 0b111;
         let rd = (instruction >> 7) & 0x1f;
         let source = (instruction >> 15) & 0x1f;
         let destination = (instruction >> 20) & 0x1f;
         let imm = instruction >> 25;
-
-        println!("Source: {:05b}\nDest {:05b}", source, destination);
         match t {
             // SB
             0b000 => {
@@ -144,13 +150,32 @@ impl RiscVCpu{
             _ => println!("Not impliemted load type"),
         }
     }
+    fn jump_imm_link(&mut self, instruction: u32){
+        let rd = (instruction >> 7) & 0x1f;
+        let imm = instruction >> 12 & 0x6ffff;
+        self.registers[rd as usize] = self.program_counter;
+        self.program_counter = imm;
+        println!("\tJump and link");
+        println!("\tImm: {}", imm);
 
+    }
+    fn jump_imm_link_reg(&mut self, instruction: u32){
+        let rd = (instruction >> 7) & 0x1f;
+        let t = (instruction >> 12) & 0x111;
+        let rs1 = (instruction >> 15) & 0x1f;
+        let imm = instruction >> 25;
+        self.registers[rd as usize] = self.program_counter;
+        self.program_counter = self.registers[rs1 as usize];
+
+        println!("\tJump and link reg");
+        println!("\tRs1: {:05b}", rs1);
+    }
 }
 
 
 fn main() {
     let mut cpu = RiscVCpu::new();
-    let program = read_ascii_file_to_vec("program.txt".to_string());
+    let program = read_ascii_file_to_vec("program_lean.txt".to_string());
     match cpu.load_program(program)
     {
         Ok(_) => {
@@ -194,6 +219,7 @@ fn read_ascii_file_to_vec(name: String) -> Vec<u8>{
                     i += 1;
                     num = (num << 1) | 1;
                 },
+
                 _ => continue
             }
 

@@ -1,5 +1,5 @@
 use device_query::{DeviceQuery, DeviceState, Keycode};
-use std::{time};
+use std::{time, vec};
 
 enum Square {
     Empty,
@@ -30,15 +30,33 @@ struct SnakePeice {
     next: Box<Option<SnakePeice>>
 }
 impl SnakePeice{
+    fn new(x:usize, y:usize) -> SnakePeice{
+        SnakePeice { x: x, y: y, velocity: Direction::South, next: Box::new(Option::None) }
+    }
     fn move_peice_and_children(&mut self){
+
         match &self.velocity{
-            Direction::North => self.y -= 1,
-            Direction::South => self.y += 1,
-            Direction::East => self.x -= 1,
-            Direction::West => self.x += 1, 
+            Direction::North => {self.x -= 1},
+            Direction::South => {self.y += 1;},
+            Direction::East => {self.y -= 1},
+            Direction::West => {self.x += 1;}, 
         }
-        self.x = self.x % 25;
-        self.y = self.y % 25;
+        self.x = if self.x == 0 {
+            25
+        } else if self.x == 25{
+            1
+        } else{
+            self.x
+        };
+
+        self.y = if self.y == 0 {
+            25
+        } else if self.y == 25{
+            1
+        } else{
+            self.y
+        };
+
 
         match &mut (*(self.next)) {
             Some(child) => {
@@ -49,11 +67,40 @@ impl SnakePeice{
         }
     }
 
-
     fn change_velocity(&mut self, new_direction: Direction){
         self.velocity = new_direction;
     }
 
+    fn get_vector_of_positions(&self) -> Vec<(usize,usize)>{
+        let mut v = Vec::new();
+        v.push((self.x,self.y));
+        self.get_child_pos(v)
+    }
+    fn get_child_pos(&self, mut vector : Vec<(usize, usize)>) -> Vec<(usize,usize)>{
+        print!("{}", self.x);
+        match &(*self.next) {
+            Some(n) => {
+                vector.push((n.x,n.y));
+                n.get_child_pos(vector)
+            }
+            None => vector
+        }
+    }
+    fn add_child(&mut self){
+        match &(*(self.next)) {
+            Some(n) => n.add_child(),
+            None => {
+                *(self.next) = Option::Some(SnakePeice{
+                    x: self.x,
+                    y: self.y - 1,
+                    velocity: self.velocity,
+                    next: Box::new(Option::None)
+                })
+            }
+        }
+
+
+    }
 }
 fn main() {
     let width:usize = 25;
@@ -102,6 +149,7 @@ fn main() {
 
 
 fn render_board(board : &Vec<Vec<Square>>){
+    print!("\x1B[u");
     for row in board {
         for space in row{
             match space {
@@ -124,16 +172,15 @@ fn render_board(board : &Vec<Vec<Square>>){
 
 fn game_loop(mut board : Vec<Vec<Square>>){
     let device_state = DeviceState::new();
-    let mut _loop_delay = time::Duration::from_millis(1000);
+    let mut _loop_delay = time::Duration::from_millis(66);
     let mut outside_key = Keycode::Space;
     let mut previous_loop_time = time::Instant::now();
 
-    let mut snake = SnakePeice{
-        x: 10,
-        y: 10,
-        velocity: Direction::South,
-        next: Box::new(Option::None)
-    };
+    let mut snake = SnakePeice::new(10,10);
+    *(snake.next) = Option::Some(SnakePeice::new(11,10));
+    // *((*(snake.next)).unwrap().next) = Option::Some(SnakePeice::new(12,10));
+    // *(snake.next) = Option::Some(SnakePeice::new(11,10));
+    // *(snake.next) = Option::Some(SnakePeice::new(11,10));
     loop {
         let inside_key = device_state.get_keys();
         if !inside_key.is_empty() {
@@ -149,7 +196,7 @@ fn game_loop(mut board : Vec<Vec<Square>>){
                 Keycode::D => snake.change_velocity(Direction::South),
                 _ => (),
             }
-
+            snake.move_peice_and_children();
             board = put_snake_on_board(board, &snake);
             render_board(&board);
 
@@ -161,62 +208,46 @@ fn put_snake_on_board(mut board: Vec<Vec<Square>>, snake : &SnakePeice) -> Vec<V
     for (i,row) in board.iter_mut().enumerate(){
         for (j,space) in row.iter_mut().enumerate(){
             if i == 0 && j == 0 {
-                *space = (Square::Northwest);
+                *space = Square::Northwest;
                 continue;
             } else 
             if i == 0 && j == 25 {
-                *space = (Square::Northeast);
+                *space = Square::Northeast;
                 continue;
             } else 
             if i == 25 && j == 25 {
-                *space  = (Square::Southeast);
+                *space  = Square::Southeast;
                 continue;
             } else 
             if i == 25 && j == 25 {
-                *space = (Square::Southwest);
+                *space = Square::Southwest;
                 continue;
             } else 
             if i == 0 {
-                *space = (Square::North);
+                *space = Square::North;
                 continue;
             } else 
             if i == 25 {
-                *space = (Square::South);
+                *space = Square::South;
                 continue;
             } else 
             if j == 25 {
-                *space = (Square::East);
+                *space = Square::East;
                 continue;
             } else 
             if j == 0 {
-                *space = (Square::West);
+                *space = Square::West;
                 continue;
             } else {
-                *space = (Square::Empty);
+                *space = Square::Empty;
             }
         }
     }
-    board[snake.x][snake.y] = Square::Snake;
-    let mut s_copy = snake;
-    let c = s_copy.next.as_ref();
-    while(c.unwrap().next.is_some()){        
-        // s_copy = c;
-        board[10][10] = Square::Snake;
+    let pos = snake.get_vector_of_positions();
+    println!("{:?}",pos);
+    for (x,y) in pos{
+        board[x][y] = Square::Snake
     }
-    for (i,row) in board.iter_mut().enumerate(){
-        for (j,space) in row.iter_mut().enumerate(){
-
-        }
-    }
-
 
     return board
 }
-// fn move_snake_peice(mut snake : &mut SnakePeice){
-//     if snake.next.is_none() {
-//         return;
-//     }
-
-
-
-// }

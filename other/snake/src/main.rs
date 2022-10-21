@@ -88,11 +88,11 @@ impl SnakePeice{
             None => vector
         }
     }
-    fn add_cild(&mut self){
-        let mut n = (*(self.next)).as_mut();
+    fn add_child(&mut self){
+        let n = (*(self.next)).as_mut();
         match n {
-            Some(mut n) => {
-                (*n).add_cild();
+            Some(n) => {
+                (*n).add_child();
             }
             None => {
                 *(self.next) = Option::Some(SnakePeice::new(self.x,self.y));
@@ -220,7 +220,7 @@ fn put_snake_on_board(mut board: Vec<Vec<Square>>, snake : &SnakePeice) -> Vec<V
                 *space  = Square::Southeast;
                 continue;
             } else 
-            if i == 25 && j == 25 {
+            if i == 25 && j == 0 {
                 *space = Square::Southwest;
                 continue;
             } else 
@@ -254,9 +254,9 @@ fn put_snake_on_board(mut board: Vec<Vec<Square>>, snake : &SnakePeice) -> Vec<V
 }
 
 fn check_positions(positions : Vec<(usize,usize)>) -> bool{
-    for (x1,y1) in positions.iter(){
-        for (x2,y2) in positions.iter(){
-            if x1 == x2 && y1 == y2 {
+    for (i,(x1,y1)) in positions.iter().enumerate(){
+        for (j,(x2,y2)) in positions.iter().enumerate(){
+            if (i != j) && x1 == x2 && y1 == y2 {
                 return false;
             }
         }

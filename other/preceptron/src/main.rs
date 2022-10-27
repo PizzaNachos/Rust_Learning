@@ -184,8 +184,8 @@ impl Network {
             let mut hidden_error : Vec<f64> = vec![0.0;1];
             let my_index = 0;
             for (index,o_error) in output_error.iter().enumerate() {
-                hidden_error[my_index] += self.layers[self.layers.len() - 1].nuerons[0].weights[0] * o_error;
-                hidden_error[my_index] += self.layers[self.layers.len() - 1].nuerons[1].weights[0] * o_error;
+                hidden_error[my_index] += self.layers[self.layers.len() - 1].nuerons[0].weights[0] * o_error * -1.0;
+                hidden_error[my_index] += self.layers[self.layers.len() - 1].nuerons[1].weights[0] * o_error * -1.0;
                 break;
                 // hidden_error[index] += self.layers[self.layers.len() - 1].nuerons[index].weights[2] * o_error;
 
@@ -193,6 +193,15 @@ impl Network {
             }
             agregate_weight_changes[0][0] = hidden_error.clone();
             agregate_weight_changes[1][0] = output_error.clone();
+            agregate_weight_changes[1][1] = output_error.clone();
+            agregate_weight_changes[1][2] = output_error.clone();
+
+            // agregate_weight_changes[1][0][1] = output_error[1];
+            // agregate_weight_changes[1][0][2] = output_error[2];
+
+            // agregate_weight_changes[1][1] = output_error[1];
+            // agregate_weight_changes[1][2] = output_error[2];
+
             // for (i,l) in self.layers.iter().enumerate(){
             //     for (j,n) in (*l).nuerons.iter().enumerate(){
             //         println!("L:{}, N: {} \t{:?}", i, j , (*n).weights);
@@ -357,11 +366,11 @@ pub fn main() {
     let inputs = vec![vec![1.0,2.0];1];
     let targets = vec![vec![1.1, 4.0];1];
 
-    network.back_propigate(inputs.clone(), targets.clone(), 10.5);
-    network.back_propigate(inputs.clone(), targets.clone(), 10.1);
-    network.back_propigate(inputs.clone(), targets.clone(), 10.0);
-    network.back_propigate(inputs.clone(), targets.clone(), 0.1);
-    network.back_propigate(inputs.clone(), targets.clone(), 10.1);
+    network.back_propigate(inputs.clone(), targets.clone(), 1.0);
+    // network.back_propigate(inputs.clone(), targets.clone(), 10.1);
+    // network.back_propigate(inputs.clone(), targets.clone(), 10.0);
+    // network.back_propigate(inputs.clone(), targets.clone(), 0.1);
+    // network.back_propigate(inputs.clone(), targets.clone(), 10.1);
 
 }
 

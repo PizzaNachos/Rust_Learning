@@ -88,7 +88,6 @@ impl Layer {
 
 #[wasm_bindgen]
 pub struct Network {
-
     layers : Vec<Layer>
 }
 
@@ -269,6 +268,29 @@ impl Network {
         return biases;
     }
 }
+
+
+pub struct TensorNetwork{
+    weights: Vec<Vec<f64>>
+}
+impl TensorNetwork{
+    fn new(size: Vec<i32>) -> TensorNetwork{
+        let mut layers: Vec<Vec<f64>> = Vec::new();
+        for (i,layer_num) in size.iter().enumerate(){
+            layers.push(Vec::new());
+            for _ in 0..*layer_num{
+                layers[i].push(random_f64_0_1())
+            }
+        }
+        return TensorNetwork { weights: layers };
+    }
+    fn feed_forward(&self, inputs: Vec<f64>) -> Vec<f64>{
+        let output : Vec<f64> = inputs;
+        return output;
+    }
+}
+
+
 
 
 fn sigmoid(input: f64) -> f64{

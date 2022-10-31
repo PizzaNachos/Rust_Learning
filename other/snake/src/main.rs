@@ -1,5 +1,6 @@
 use device_query::{DeviceQuery, DeviceState, Keycode};
 use std::{time, vec};
+use rand::prelude::*;
 
 enum Square {
     Empty,
@@ -177,7 +178,7 @@ fn game_loop(mut board : Vec<Vec<Square>>){
     let mut previous_loop_time = time::Instant::now();
 
     let mut snake = SnakePeice::new(10,10);
-    
+    board = add_apple_to_board(board);
     loop {
         let inside_key = device_state.get_keys();
         if !inside_key.is_empty() {
@@ -193,6 +194,7 @@ fn game_loop(mut board : Vec<Vec<Square>>){
                 Keycode::D => snake.change_velocity(Direction::South),
                 _ => (),
             }
+
             snake.move_peice_and_children();
             if check_positions(snake.get_vector_of_positions()) == false{
                 println!("YOU DIED");
@@ -262,4 +264,17 @@ fn check_positions(positions : Vec<(usize,usize)>) -> bool{
         }
     }
     return true;
+}
+
+fn add_apple_to_board(mut board: Vec<Vec<Square>>) -> Vec<Vec<Square>>{
+    let mut rng = rand::thread_rng();
+    let v1:usize = rng.gen();
+    let r1:usize = (v1 % (board.len() - 2)) + 1;
+
+    let v2:usize = rng.gen();
+    let r2:usize = (v2 % (board.len() - 2)) + 1;
+
+    board[r1][r2] = Square::Apple;
+    println!("{} {}", r1,r2);
+    return board;
 }

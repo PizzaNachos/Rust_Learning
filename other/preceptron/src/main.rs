@@ -1,3 +1,7 @@
+#![feature(generic_const_exprs)]
+#![allow(incomplete_features, unused_variables)]
+
+
 use std::vec;
 use getrandom::getrandom;
 use wasm_bindgen::prelude::*;
@@ -277,6 +281,17 @@ impl<const WIDTH: usize, const HEIGHT: usize> Matrix<f64, WIDTH, HEIGHT> {
     fn new() -> Matrix<f64, WIDTH, HEIGHT>{
         Matrix { matrix: vec![vec![0.0;WIDTH];HEIGHT]}
     }
+    fn new_closure<F:Fn(usize,usize)->f64> (closure:F) -> Matrix<f64,WIDTH,HEIGHT>{
+        let mut wrapper = Vec::with_capacity(HEIGHT);
+        for i in 0..HEIGHT{
+            let mut inner = Vec::with_capacity(WIDTH);
+            for j in 0..WIDTH{
+                inner.push(closure(i,j));
+            }
+            wrapper.push(inner);
+        }
+        return Matrix{matrix:wrapper};
+    }
     fn transpose(&self) -> Matrix<f64, HEIGHT, WIDTH>{
         let mut new_columns:Vec<Vec<f64>> = Vec::with_capacity(WIDTH);
         for _ in 0..WIDTH{
@@ -300,41 +315,35 @@ impl<const WIDTH: usize, const HEIGHT: usize> Matrix<f64, WIDTH, HEIGHT> {
         return m;
     }
 
-}
+    fn dot<const WIDTH_RHS: usize> 
+        (&self, rhs: &Matrix<f64, WIDTH_RHS, WIDTH>) 
+            -> Matrix<f64, WIDTH_RHS, HEIGHT> 
+    {
+        let mut m : Matrix<f64,WIDTH_RHS, HEIGHT> =  Matrix::new();
+        let mut running : f64;
+        for i in 0..HEIGHT{
+            for k in 0..WIDTH_RHS{
+                running = 0.0;
+                for j in 0..WIDTH{
+                    running += self.matrix[i][j] * rhs.matrix[j][k];
+                }
+                m.matrix[i][k] = running;
+            }
+        }
+        return m;
+    }
 
+}
 
 impl<const WIDTH: usize, const HEIGHT: usize> std::fmt::Display for Matrix<f64,WIDTH,HEIGHT>{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f,"{}x{}",WIDTH, HEIGHT)?;
         for column in self.matrix.iter(){
             writeln!(f,"{:?}", column)?;
         }
         Ok(())
     }
 }
-
-
-
-
-pub struct TensorNetwork{
-    weights: Vec<Vec<f64>>
-}
-impl TensorNetwork{
-    fn new(size: Vec<i32>) -> TensorNetwork{
-        let mut layers: Vec<Vec<f64>> = Vec::new();
-        for (i,layer_num) in size.iter().enumerate(){
-            layers.push(Vec::new());
-            for _ in 0..*layer_num{
-                layers[i].push(random_f64_0_1())
-            }
-        }
-        return TensorNetwork { weights: layers };
-    }
-    fn feed_forward(&self, inputs: Vec<f64>) -> Vec<f64>{
-        let output : Vec<f64> = inputs;
-        return output;
-    }
-}
-
 
 
 
@@ -428,14 +437,15 @@ fn generate_poly() -> Box<dyn Fn(f64, f64) -> f64>{
 
 // #[wasm_bindgen(start)]
 pub fn main() {
-    let m : Matrix<f64, 3, 5> = Matrix::new();
-    let mt = m.transpose();
-
-    let broke = m.add(&mt.transpose());
+    let m : Matrix<f64, 4, 3> = Matrix::new_closure(|x,y| -> f64{(x as f64)*100.0 + ((y as f64)*10.0)});
+    let m1 : Matrix<f64, 2, 4> = Matrix::new_closure(|x,y| -> f64{(x as f64) + ((y as f64)/10.0)});
 
     println!("{}",m);
-    println!("{}",mt);
-    println!("{}",broke);
+    println!("{}",m1);
+
+    let x = m.dot(&m1);
+
+    println!("{}",x)
 
     // let a: [i32;3] = [0,1,2];
     // let network_layers = vec![1,1,2];

@@ -270,7 +270,6 @@ impl Network {
 
 // ArrayType : [ Type ; Expression ]
 pub struct Matrix<T, const WIDTH: usize, const HEIGHT: usize>{
-    // Columns first, then row
     matrix: Vec<Vec<T>>,
 }
 impl<const WIDTH: usize, const HEIGHT: usize> Matrix<f64, WIDTH, HEIGHT> {
@@ -300,42 +299,21 @@ impl<const WIDTH: usize, const HEIGHT: usize> Matrix<f64, WIDTH, HEIGHT> {
         return m;
     }
 
+    // fn dot(&self, rhs: &Matrix<f64, WIDTH,HEIGHT>) -> Matrix<f64, WIDTH, HEIGHT>{
+        
+    // }
 }
 
 
 impl<const WIDTH: usize, const HEIGHT: usize> std::fmt::Display for Matrix<f64,WIDTH,HEIGHT>{
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f,"{}x{}", WIDTH,HEIGHT)?;
         for column in self.matrix.iter(){
             writeln!(f,"{:?}", column)?;
         }
         Ok(())
     }
 }
-
-
-
-
-pub struct TensorNetwork{
-    weights: Vec<Vec<f64>>
-}
-impl TensorNetwork{
-    fn new(size: Vec<i32>) -> TensorNetwork{
-        let mut layers: Vec<Vec<f64>> = Vec::new();
-        for (i,layer_num) in size.iter().enumerate(){
-            layers.push(Vec::new());
-            for _ in 0..*layer_num{
-                layers[i].push(random_f64_0_1())
-            }
-        }
-        return TensorNetwork { weights: layers };
-    }
-    fn feed_forward(&self, inputs: Vec<f64>) -> Vec<f64>{
-        let output : Vec<f64> = inputs;
-        return output;
-    }
-}
-
-
 
 
 fn sigmoid(input: f64) -> f64{

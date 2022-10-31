@@ -24,7 +24,7 @@ fn main() {
     });
     loop {
         sleep(Duration::from_millis(10000));
-        print!("{}", Arc::strong_count(&wrapped_vec));
+        // print!("{}", Arc::strong_count(&wrapped_vec));
         let mut unwrapped_vec = wrapped_vec.lock().expect("msg");
         if unwrapped_vec.len() > 0 {
             export_data(&unwrapped_vec);

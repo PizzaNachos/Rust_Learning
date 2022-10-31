@@ -1,4 +1,3 @@
-
 use std::vec;
 use getrandom::getrandom;
 use wasm_bindgen::prelude::*;
@@ -269,6 +268,52 @@ impl Network {
     }
 }
 
+// ArrayType : [ Type ; Expression ]
+pub struct Matrix<T, const WIDTH: usize, const HEIGHT: usize>{
+    // Columns first, then row
+    matrix: Vec<Vec<T>>,
+}
+impl<const WIDTH: usize, const HEIGHT: usize> Matrix<f64, WIDTH, HEIGHT> {
+    fn new() -> Matrix<f64, WIDTH, HEIGHT>{
+        Matrix { matrix: vec![vec![0.0;WIDTH];HEIGHT]}
+    }
+    fn transpose(&self) -> Matrix<f64, HEIGHT, WIDTH>{
+        let mut new_columns:Vec<Vec<f64>> = Vec::with_capacity(WIDTH);
+        for _ in 0..WIDTH{
+            new_columns.push(vec![0.0;HEIGHT])
+        }
+        for (i,row) in self.matrix.iter().enumerate(){
+            for (j,number) in row.iter().enumerate(){
+                new_columns[j][i] = *number;
+            }
+        }
+        Matrix { matrix: new_columns}
+    }
+
+    fn add(&self, rhs: &Matrix<f64, WIDTH,HEIGHT>) -> Matrix<f64, WIDTH, HEIGHT>{
+        let mut m: Matrix<f64, WIDTH, HEIGHT> = Matrix::new();
+        for (i,row) in m.matrix.iter_mut().enumerate(){
+            for (j,space) in row.iter_mut().enumerate(){
+                *space = self.matrix[i][j] + rhs.matrix[i][j];
+            }
+        }
+        return m;
+    }
+
+}
+
+
+impl<const WIDTH: usize, const HEIGHT: usize> std::fmt::Display for Matrix<f64,WIDTH,HEIGHT>{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for column in self.matrix.iter(){
+            writeln!(f,"{:?}", column)?;
+        }
+        Ok(())
+    }
+}
+
+
+
 
 pub struct TensorNetwork{
     weights: Vec<Vec<f64>>
@@ -383,12 +428,22 @@ fn generate_poly() -> Box<dyn Fn(f64, f64) -> f64>{
 
 // #[wasm_bindgen(start)]
 pub fn main() {
-    let network_layers = vec![1,1,2];
-    let mut network = Network::new(network_layers);
-    let inputs = vec![vec![1.0,2.0];1];
-    let targets = vec![vec![1.1, 4.0];1];
+    let m : Matrix<f64, 3, 5> = Matrix::new();
+    let mt = m.transpose();
 
-    network.back_propigate(inputs.clone(), targets.clone(), 1.0);
+    let broke = m.add(&mt.transpose());
+
+    println!("{}",m);
+    println!("{}",mt);
+    println!("{}",broke);
+
+    // let a: [i32;3] = [0,1,2];
+    // let network_layers = vec![1,1,2];
+    // let mut network = Network::new(network_layers);
+    // let inputs = vec![vec![1.0,2.0];1];
+    // let targets = vec![vec![1.1, 4.0];1];
+
+    // network.back_propigate(inputs.clone(), targets.clone(), 1.0);
     // network.back_propigate(inputs.clone(), targets.clone(), 10.1);
     // network.back_propigate(inputs.clone(), targets.clone(), 10.0);
     // network.back_propigate(inputs.clone(), targets.clone(), 0.1);

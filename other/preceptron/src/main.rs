@@ -1,10 +1,10 @@
 #![feature(generic_const_exprs)]
 #![allow(incomplete_features, unused_variables)]
+#![feature(associated_type_bounds)]
 
-
-use std::vec;
+use std::{vec, usize, any::Any, error::Error, f32::consts::E};
 use getrandom::getrandom;
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{prelude::*, closure};
 
 struct Neuron{
     weights: Vec<f64>,
@@ -315,7 +315,7 @@ impl<const WIDTH: usize, const HEIGHT: usize> Matrix<f64, WIDTH, HEIGHT> {
         return m;
     }
 
-    fn dot<const WIDTH_RHS: usize> 
+    fn dot_product<const WIDTH_RHS: usize> 
         (&self, rhs: &Matrix<f64, WIDTH_RHS, WIDTH>) 
             -> Matrix<f64, WIDTH_RHS, HEIGHT> 
     {
@@ -344,7 +344,123 @@ impl<const WIDTH: usize, const HEIGHT: usize> std::fmt::Display for Matrix<f64,W
         Ok(())
     }
 }
+#[derive(Debug)]
+struct DotError{}
 
+impl Error for DotError{}
+impl std::fmt::Display for DotError{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Ok(())
+    }
+}
+struct SimpleMatrix{
+    m:Vec<Vec<f64>>,
+    width: usize,
+    height: usize
+}
+impl SimpleMatrix{
+    fn new(width: usize, height:usize) -> SimpleMatrix{
+        SimpleMatrix { m: vec![vec![0.0;width];height], width, height}
+    }
+    fn new_closure<F:Fn(usize,usize)->f64> (width:usize,height:usize,closure:F) -> SimpleMatrix{
+        let mut wrapper = Vec::with_capacity(height);
+        for i in 0..height{
+            let mut inner = Vec::with_capacity(width);
+            for j in 0..width{
+                inner.push(closure(i,j));
+            }
+            wrapper.push(inner);
+        }
+        return SimpleMatrix{m:wrapper, width, height};
+    }
+    fn transpose(&self) -> SimpleMatrix{
+        let mut new_columns:Vec<Vec<f64>> = Vec::with_capacity(self.width);
+        for _ in 0..self.width{
+            new_columns.push(vec![0.0;self.height])
+        }
+        for (i,row) in self.m.iter().enumerate(){
+            for (j,number) in row.iter().enumerate(){
+                new_columns[j][i] = *number;
+            }
+        }
+        SimpleMatrix { m: new_columns, width:self.height, height:self.width}
+    }
+
+    fn add(&self, rhs: &SimpleMatrix) -> Result<SimpleMatrix, DotError>{
+        if self.width != rhs.width || self.height != rhs.height{
+            return Err(DotError{})
+        }
+
+        let mut m = SimpleMatrix::new(self.width, self.height);
+        for (i,row) in m.m.iter_mut().enumerate(){
+            for (j,space) in row.iter_mut().enumerate(){
+                *space = self.m[i][j] + rhs.m[i][j];
+            }
+        }
+        return Ok(m);
+    }
+
+    fn dot_product (&self, rhs: &SimpleMatrix) -> Result<SimpleMatrix, DotError> {
+        if self.width != rhs.height{
+            return Err(DotError{})
+        }
+        let mut m = SimpleMatrix::new(rhs.width, self.height);
+        let mut running : f64;
+        for i in 0..self.height{
+            for k in 0..rhs.width{
+                running = 0.0;
+                for j in 0..self.width{
+                    running += self.m[i][j] * rhs.m[j][k];
+                }
+                m.m[i][k] = running;
+            }
+        }
+        return Ok(m);
+    }
+}
+impl std::fmt::Display for SimpleMatrix{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f,"{}x{}",self.width, self.height)?;
+        for column in self.m.iter(){
+            writeln!(f,"{:?}", column)?;
+        }
+        Ok(())
+    }
+}
+
+
+struct SimpleTensor{
+    weights: Vec<SimpleMatrix>,
+    biases: Vec<Vec<f64>>,
+}
+impl SimpleTensor{
+    fn new(layers: Vec<usize>) -> SimpleTensor{
+        let mut l = Vec::with_capacity(layers.len());
+        for i in 1..layers.len(){
+            l.push(SimpleMatrix::new(layers[i - 1], layers[i]))
+        }
+        SimpleTensor { weights: l, biases: vec![vec![0.0];10]}
+    }
+    fn from_closure<F:Fn(usize,usize)->f64>(layers: Vec<usize>, closure:F) -> SimpleTensor{
+        let mut l = Vec::with_capacity(layers.len());
+        for i in 1..layers.len(){
+            l.push(SimpleMatrix::new_closure(layers[i - 1], layers[i], &closure))
+        }
+        SimpleTensor { weights: l, biases: vec![vec![0.0];10]}
+    }
+    // fn feed_forward(inputs: Vec<f64>) -> Vec<f64>{
+
+    // }
+}
+
+impl std::fmt::Display for SimpleTensor{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for m in self.weights.iter(){
+            writeln!(f,"{}", m)?;
+        }
+        Ok(())
+    }
+}
 
 
 fn sigmoid(input: f64) -> f64{
@@ -356,7 +472,7 @@ pub fn random_f64_0_1() -> f64{
     let mut byts = [0;8];
     match getrandom(&mut byts){
         Ok(_) => {
-            println!("{:?}", byts);
+            // println!("{:?}", byts);
             // let base: u32 = ;
             // let large_n = (n as u32) << 15;
             // let f32_bits = base | large_n;
@@ -367,14 +483,14 @@ pub fn random_f64_0_1() -> f64{
             // 0b0_01111111110_00000000000000000000000
             //   0_01111111111
             byts[0] = 0b0_0111111;
-            byts[1] = (byts[1] | 0b1110_0000) & (byts[1] & 0b0000_1111);
+            byts[1] = (byts[1] | 0b1111_0000) & (byts[1] & 0b1111_1111);
             // Times 4 for some reason, experminets show we need to do this to normalize it
             // let or_mask:u64 = 0b0_01111111111_0000000000000000000000000000000000000000000000000000;
             // let and_mask:u64 = 0b0_01111111111_1111111111111111111111111111111111111111111111111111;
 
             // let num = u64::from_be_bytes(byts) | or_mask;
             // let num = num & and_mask;
-            f64::from_be_bytes(byts) * 2.0
+            f64::from_be_bytes(byts) * 1.0
         },
         Err(_) => 0.5
     }
@@ -417,8 +533,6 @@ impl FunctionTuple{
 
 fn generate_poly() -> Box<dyn Fn(f64, f64) -> f64>{
     let num_of_terms = random_i32(4) + 2;
-    // let num_of_terms = 3;
-    // let num_of_terms = 5;
     let mut constants : Vec<f64> = vec![];
     for _ in 0..num_of_terms{
         constants.push(random_f64_0_1() / 4.0);
@@ -434,30 +548,27 @@ fn generate_poly() -> Box<dyn Fn(f64, f64) -> f64>{
         return ((ouput > (y + c as f64)) as i32).into();
     })
 }
-
 // #[wasm_bindgen(start)]
 pub fn main() {
-    let m : Matrix<f64, 4, 3> = Matrix::new_closure(|x,y| -> f64{(x as f64)*100.0 + ((y as f64)*10.0)});
-    let m1 : Matrix<f64, 2, 4> = Matrix::new_closure(|x,y| -> f64{(x as f64) + ((y as f64)/10.0)});
+    let input = vec![vec![1.1],vec![1.2]];
+    let i1: Matrix<f64, 1, 2> = Matrix::new_closure(|x,y| -> f64{
+        // println!("{} {}",x,y);
+        if x == 0 {
+            1.1
+        } else {
+            1.2
+        }
+    });
 
-    println!("{}",m);
-    println!("{}",m1);
+    // let l1 : Matrix<f64, 4, 2> = Matrix::new_closure(|x,y| -> f64{random_f64_0_1()});
+    // let l2 : Matrix<f64, 3 ,4> = Matrix::new_closure(|x,y| -> f64{random_f64_0_1()});
 
-    let x = m.dot(&m1);
+    let simple = SimpleTensor::from_closure(vec![2,4,3], |x,y| -> f64{random_f64_0_1()});
+    println!("{}", simple);
 
-    println!("{}",x)
-
-    // let a: [i32;3] = [0,1,2];
-    // let network_layers = vec![1,1,2];
-    // let mut network = Network::new(network_layers);
-    // let inputs = vec![vec![1.0,2.0];1];
-    // let targets = vec![vec![1.1, 4.0];1];
-
-    // network.back_propigate(inputs.clone(), targets.clone(), 1.0);
-    // network.back_propigate(inputs.clone(), targets.clone(), 10.1);
-    // network.back_propigate(inputs.clone(), targets.clone(), 10.0);
-    // network.back_propigate(inputs.clone(), targets.clone(), 0.1);
-    // network.back_propigate(inputs.clone(), targets.clone(), 10.1);
+    
+    let simple = SimpleTensor::new(vec![2,4,3]);
+    println!("{}", simple);
 
 }
 
